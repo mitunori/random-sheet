@@ -374,7 +374,10 @@ const students = [
 
 // ===== 制約条件 =====
 // 森田心彩と同じテーブルにしない人
-const MORITA_EXCLUDE = ["西原逸生", "加奥梨乃", "関菜渚子", "鈴木仁菜"];
+const MORITA_EXCLUDE = ["西原逸生", "加奥梨乃", "関菜渚子"];
+
+// 森田心彩となるべく同じテーブルにしたい人
+const MORITA_INCLUDE = ["鈴木仁菜"];
 
 // 中東葉乃と同じテーブルに入れる候補（最低1人、できれば2人）
 const NAKAHIGASHI_INCLUDE = ["舘碧人", "片柳陸", "大野遼真"];
@@ -401,196 +404,229 @@ function genderCount(group, g) {
 }
 
 // ===== 席順アルゴリズム =====
+// 13卓固定、ターゲット参加人数8名、最大9名
+const NUM_TABLES = 13;
+const TARGET_ATTEND = 8;
+const MAX_ATTEND = 9;
+
 function generateSeating() {
-  const males = shuffle(students.filter(s => s.gender === "M"));
-  const females = shuffle(students.filter(s => s.gender === "F"));
+  const allStudents = shuffle([...students]);
 
-  // 制約対象の生徒を取得
+  // ===== 1. 制約テーブルを先に構成 =====
+  const usedIds = new Set();
+
+  // --- 中東葉乃テーブル ---
   const nakahigashi = students.find(s => s.name === "中東葉乃");
-  const morita = students.find(s => s.name === "森田心彩");
-  const nakahigashiCandidates = students.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name));
-  const moritaExcluded = students.filter(s => MORITA_EXCLUDE.includes(s.name));
-
-  // まず中東葉乃のテーブルを作る
-  const shuffledCandidates = shuffle(nakahigashiCandidates);
-  // 1〜2人を選ぶ（ランダムに1人か2人）
+  const candidates = shuffle(students.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)));
   const numPick = Math.random() < 0.6 ? 2 : 1;
-  const pickedForNakahigashi = shuffledCandidates.slice(0, numPick);
+  const picked = candidates.slice(0, numPick);
+  const table0 = [nakahigashi, ...picked];
+  table0.forEach(s => usedIds.add(s.id));
 
-  // 中東葉乃テーブルのメンバーを構成
-  const nakahigashiTable = [nakahigashi, ...pickedForNakahigashi];
-  const usedIds = new Set(nakahigashiTable.map(s => s.id));
-
-  // 中東葉乃テーブルの残り枠を埋める（男女バランス考慮）
-  const currentM = genderCount(nakahigashiTable, "M");
-  const currentF = genderCount(nakahigashiTable, "F");
-  const tableSize = 4; // 基本4人
-
-  let needM = 2 - currentM;
-  let needF = 2 - currentF;
-
-  // 4人に足りない場合の調整
-  const totalNeeded = tableSize - nakahigashiTable.length;
-  if (needM + needF !== totalNeeded) {
-    // 5人テーブルにするか調整
-    if (needM < 0) { needM = 0; needF = totalNeeded; }
-    if (needF < 0) { needF = 0; needM = totalNeeded; }
-  }
-
-  const availMales = males.filter(s => !usedIds.has(s.id) && !MORITA_EXCLUDE.includes(s.name) && !NAKAHIGASHI_EXCLUDE.includes(s.name));
-  const availFemales = females.filter(s => !usedIds.has(s.id) && s.name !== "森田心彩" && !MORITA_EXCLUDE.includes(s.name) && !NAKAHIGASHI_EXCLUDE.includes(s.name));
-
-  for (let i = 0; i < needM && availMales.length > 0; i++) {
-    const s = availMales.shift();
-    nakahigashiTable.push(s);
-    usedIds.add(s.id);
-  }
-  for (let i = 0; i < needF && availFemales.length > 0; i++) {
-    const s = availFemales.shift();
-    nakahigashiTable.push(s);
-    usedIds.add(s.id);
-  }
-
-  // 参加人数チェック: 7-9に収まるか確認、収まらなければ5人テーブルにするか調整
-  let attend = totalAttend(nakahigashiTable);
-  if (attend < 7 && nakahigashiTable.length < 5) {
-    // 高参加人数の生徒を追加
-    const extra = [...males, ...females].filter(s => !usedIds.has(s.id) && s.attend >= 2);
-    if (extra.length > 0) {
-      const pick = extra[0];
-      nakahigashiTable.push(pick);
-      usedIds.add(pick.id);
-    }
-  }
-
-  // 森田心彩のテーブルを作る（除外メンバーを避ける）
-  const moritaTable = [morita];
+  // --- 森田心彩テーブル ---
+  const morita = students.find(s => s.name === "森田心彩");
   usedIds.add(morita.id);
+  const preferred = students.filter(s => MORITA_INCLUDE.includes(s.name) && !usedIds.has(s.id));
+  const table1 = [morita, ...preferred];
+  preferred.forEach(s => usedIds.add(s.id));
 
-  const moritaAvailM = males.filter(s => !usedIds.has(s.id) && !MORITA_EXCLUDE.includes(s.name));
-  const moritaAvailF = females.filter(s => !usedIds.has(s.id) && s.name !== "森田心彩" && !MORITA_EXCLUDE.includes(s.name));
+  // ===== 2. 残り生徒を1組/2組交互に並べる =====
+  const rem = allStudents.filter(s => !usedIds.has(s.id));
+  const rem1M = shuffle(rem.filter(s => s.cls === "1組" && s.gender === "M"));
+  const rem1F = shuffle(rem.filter(s => s.cls === "1組" && s.gender === "F"));
+  const rem2M = shuffle(rem.filter(s => s.cls === "2組" && s.gender === "M"));
+  const rem2F = shuffle(rem.filter(s => s.cls === "2組" && s.gender === "F"));
 
-  // 男2女2 → 森田は女なので男2女1追加
-  for (let i = 0; i < 2 && moritaAvailM.length > 0; i++) {
-    const s = moritaAvailM.shift();
-    moritaTable.push(s);
-    usedIds.add(s.id);
-  }
-  for (let i = 0; i < 1 && moritaAvailF.length > 0; i++) {
-    const s = moritaAvailF.shift();
-    moritaTable.push(s);
-    usedIds.add(s.id);
-  }
+  // ===== 3. 13卓を構成（制約2卓 + 残り11卓）=====
+  const tables = new Array(NUM_TABLES);
+  tables[0] = table0;
+  tables[1] = table1;
+  for (let i = 2; i < NUM_TABLES; i++) tables[i] = [];
 
-  // 参加人数調整
-  attend = totalAttend(moritaTable);
-  if (attend < 7 && moritaTable.length < 5) {
-    const extra = [...males, ...females].filter(s =>
-      !usedIds.has(s.id) && !MORITA_EXCLUDE.includes(s.name) && s.attend >= 2
-    );
-    if (extra.length > 0) {
-      moritaTable.push(extra[0]);
-      usedIds.add(extra[0].id);
+  // 制約テーブルを4人に埋める（1組2組混合、男女バランス）
+  function fillTable(table, excludeNames) {
+    const curM = genderCount(table, "M");
+    const curF = genderCount(table, "F");
+    const cur1 = table.filter(s => s.cls === "1組").length;
+    const cur2 = table.filter(s => s.cls === "2組").length;
+    let wantM = Math.max(0, 2 - curM);
+    let wantF = Math.max(0, 2 - curF);
+
+    // 1組2組を混ぜるため、少ない方の組から優先的に取る
+    const pickMale = (pool) => {
+      const avail = pool.filter(s => !usedIds.has(s.id) && !excludeNames.includes(s.name));
+      if (avail.length === 0) return null;
+      const pick = avail[0];
+      pool.splice(pool.indexOf(pick), 1);
+      return pick;
+    };
+
+    for (let i = 0; i < wantM; i++) {
+      // 1組2組バランス: テーブル内で少ない組から取る
+      const t1 = table.filter(s => s.cls === "1組").length;
+      const t2 = table.filter(s => s.cls === "2組").length;
+      let pick = null;
+      if (t1 <= t2) {
+        pick = pickMale(rem1M) || pickMale(rem2M);
+      } else {
+        pick = pickMale(rem2M) || pickMale(rem1M);
+      }
+      if (pick) { table.push(pick); usedIds.add(pick.id); }
+    }
+
+    const pickFemale = (pool) => {
+      const avail = pool.filter(s => !usedIds.has(s.id) && !excludeNames.includes(s.name));
+      if (avail.length === 0) return null;
+      const pick = avail[0];
+      pool.splice(pool.indexOf(pick), 1);
+      return pick;
+    };
+
+    for (let i = 0; i < wantF; i++) {
+      const t1 = table.filter(s => s.cls === "1組").length;
+      const t2 = table.filter(s => s.cls === "2組").length;
+      let pick = null;
+      if (t1 <= t2) {
+        pick = pickFemale(rem1F) || pickFemale(rem2F);
+      } else {
+        pick = pickFemale(rem2F) || pickFemale(rem1F);
+      }
+      if (pick) { table.push(pick); usedIds.add(pick.id); }
     }
   }
 
-  // 残りの生徒を振り分け
-  const remaining = students.filter(s => !usedIds.has(s.id));
-  const remMales = shuffle(remaining.filter(s => s.gender === "M"));
-  const remFemales = shuffle(remaining.filter(s => s.gender === "F"));
+  // 中東テーブル埋め（関菜渚子除外）
+  fillTable(tables[0], [...NAKAHIGASHI_EXCLUDE]);
+  // 森田テーブル埋め（除外リスト適用）
+  fillTable(tables[1], [...MORITA_EXCLUDE]);
 
-  const tables = [nakahigashiTable, moritaTable];
-
-  // 残りをテーブルに分配
-  // 各テーブル男2女2基本で作る
-  let mi = 0, fi = 0;
-  while (mi < remMales.length || fi < remFemales.length) {
-    const table = [];
-    // 男2
-    for (let i = 0; i < 2 && mi < remMales.length; i++) {
-      table.push(remMales[mi++]);
-    }
-    // 女2
-    for (let i = 0; i < 2 && fi < remFemales.length; i++) {
-      table.push(remFemales[fi++]);
-    }
-    if (table.length > 0) {
-      tables.push(table);
-    }
-  }
-
-  // 参加人数の調整: 小さいテーブルを統合、大きいテーブルを分割
-  // まず小さすぎるテーブル（1-2人）を他に振り分け
-  const finalTables = [];
-  const stragglers = [];
-
-  for (const t of tables) {
-    if (t.length <= 2) {
-      stragglers.push(...t);
-    } else {
-      finalTables.push(t);
-    }
-  }
-
-  // stragglersを既存テーブルに追加（参加人数が少ないテーブルから）
-  for (const s of stragglers) {
-    // 参加人数が最も少ないテーブルに追加（ただし5人以下）
-    let bestIdx = -1;
-    let bestAttend = Infinity;
-    for (let i = 0; i < finalTables.length; i++) {
-      const att = totalAttend(finalTables[i]);
-      if (finalTables[i].length < 5 && att < bestAttend) {
-        bestAttend = att;
-        bestIdx = i;
+  // ===== 4. 残り11卓に1組2組交互・男女バランスで配分 =====
+  for (let t = 2; t < NUM_TABLES; t++) {
+    // 各テーブル: 1組男→2組女→2組男→1組女（交互）
+    const pools = [rem1M, rem2F, rem2M, rem1F];
+    for (const pool of pools) {
+      const avail = pool.filter(s => !usedIds.has(s.id));
+      if (avail.length > 0) {
+        const pick = avail[0];
+        pool.splice(pool.indexOf(pick), 1);
+        tables[t].push(pick);
+        usedIds.add(pick.id);
       }
     }
+  }
+
+  // 残りの生徒を参加人数が少ないテーブルに割り当て
+  const allRem = [...rem1M, ...rem1F, ...rem2M, ...rem2F].filter(s => !usedIds.has(s.id));
+  for (const s of shuffle(allRem)) {
+    // 参加人数が最も少ない & 人数が少ないテーブルに追加
+    let bestIdx = -1, bestScore = Infinity;
+    for (let i = 0; i < NUM_TABLES; i++) {
+      const att = totalAttend(tables[i]);
+      if (att >= MAX_ATTEND) continue; // 9名以上はスキップ
+      // スコア = 参加人数（低いほど優先）+ 1組2組バランスペナルティ
+      const cls1 = tables[i].filter(st => st.cls === "1組").length;
+      const cls2 = tables[i].filter(st => st.cls === "2組").length;
+      const clsBonus = (s.cls === "1組" && cls1 > cls2) ? 2 : (s.cls === "2組" && cls2 > cls1) ? 2 : 0;
+      const score = att + clsBonus;
+      if (score < bestScore) { bestScore = score; bestIdx = i; }
+    }
     if (bestIdx >= 0) {
-      finalTables[bestIdx].push(s);
-    } else {
-      // 新テーブル作成
-      finalTables.push([s]);
+      tables[bestIdx].push(s);
+      usedIds.add(s.id);
     }
   }
 
-  // テーブルが参加人数10以上の場合、分割を試みる
-  const result = [];
-  for (const t of finalTables) {
-    if (totalAttend(t) > 9 && t.length >= 6) {
-      // 2つに分割
-      const half = Math.ceil(t.length / 2);
-      result.push(t.slice(0, half));
-      result.push(t.slice(half));
-    } else {
-      result.push(t);
+  // ===== 5. スワップ最適化 =====
+  // 参加人数を8に近づける + 1組2組混合を改善
+  for (let pass = 0; pass < 30; pass++) {
+    let improved = false;
+    for (let i = 0; i < NUM_TABLES; i++) {
+      for (let j = i + 1; j < NUM_TABLES; j++) {
+        const ai = totalAttend(tables[i]), aj = totalAttend(tables[j]);
+
+        for (let si = 0; si < tables[i].length; si++) {
+          for (let sj = 0; sj < tables[j].length; sj++) {
+            const s1 = tables[i][si], s2 = tables[j][sj];
+
+            // 制約メンバーは動かさない
+            if (i === 0 && (s1.name === "中東葉乃" || NAKAHIGASHI_INCLUDE.includes(s1.name))) continue;
+            if (j === 0 && (s2.name === "中東葉乃" || NAKAHIGASHI_INCLUDE.includes(s2.name))) continue;
+            if (i === 1 && (s1.name === "森田心彩" || MORITA_INCLUDE.includes(s1.name))) continue;
+            if (j === 1 && (s2.name === "森田心彩" || MORITA_INCLUDE.includes(s2.name))) continue;
+
+            // 制約違反チェック
+            if (i === 1 && MORITA_EXCLUDE.includes(s2.name)) continue;
+            if (j === 1 && MORITA_EXCLUDE.includes(s1.name)) continue;
+            if (i === 0 && NAKAHIGASHI_EXCLUDE.includes(s2.name)) continue;
+            if (j === 0 && NAKAHIGASHI_EXCLUDE.includes(s1.name)) continue;
+
+            const newAi = ai - s1.attend + s2.attend;
+            const newAj = aj - s2.attend + s1.attend;
+
+            // 9名超えはダメ
+            if (newAi > MAX_ATTEND || newAj > MAX_ATTEND) continue;
+
+            // 参加人数スコア
+            const oldAttendDiff = Math.abs(ai - TARGET_ATTEND) + Math.abs(aj - TARGET_ATTEND);
+            const newAttendDiff = Math.abs(newAi - TARGET_ATTEND) + Math.abs(newAj - TARGET_ATTEND);
+
+            // 1組2組混合スコア
+            const mixScore = (table) => {
+              const c1 = table.filter(s => s.cls === "1組").length;
+              const c2 = table.filter(s => s.cls === "2組").length;
+              return Math.abs(c1 - c2); // 差が小さいほど良い
+            };
+
+            const ti = [...tables[i]], tj = [...tables[j]];
+            const oldMix = mixScore(ti) + mixScore(tj);
+            ti[si] = s2; tj[sj] = s1;
+            const newMix = mixScore(ti) + mixScore(tj);
+
+            // 総合スコア（参加人数 + 組混合）
+            const oldScore = oldAttendDiff * 3 + oldMix;
+            const newScore = newAttendDiff * 3 + newMix;
+
+            if (newScore < oldScore) {
+              tables[i][si] = s2;
+              tables[j][sj] = s1;
+              improved = true;
+            }
+          }
+        }
+      }
     }
+    if (!improved) break;
   }
 
-  // 制約検証
-  // 森田心彩テーブルに除外メンバーがいないか確認
-  const moritaFinal = result.find(t => t.some(s => s.name === "森田心彩"));
-  if (moritaFinal) {
-    const hasExcluded = moritaFinal.some(s => MORITA_EXCLUDE.includes(s.name));
-    if (hasExcluded) return null; // リトライ
+  // ===== 6. 最終検証 =====
+  // テーブル数チェック
+  if (tables.length !== NUM_TABLES) return null;
+
+  // 全員割り当て済みか
+  const assigned = tables.reduce((s, t) => s + t.length, 0);
+  if (assigned !== students.length) return null;
+
+  // 森田心彩テーブル検証
+  const moritaT = tables.find(t => t.some(s => s.name === "森田心彩"));
+  if (moritaT && moritaT.some(s => MORITA_EXCLUDE.includes(s.name))) return null;
+  if (moritaT && !moritaT.some(s => MORITA_INCLUDE.includes(s.name))) return null;
+
+  // 中東葉乃テーブル検証
+  const nakahigashiT = tables.find(t => t.some(s => s.name === "中東葉乃"));
+  if (nakahigashiT) {
+    if (nakahigashiT.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)).length < 1) return null;
+    if (nakahigashiT.some(s => NAKAHIGASHI_EXCLUDE.includes(s.name))) return null;
   }
 
-  // 中東葉乃テーブルに候補が1人以上いるか確認
-  const nakahigashiFinal = result.find(t => t.some(s => s.name === "中東葉乃"));
-  if (nakahigashiFinal) {
-    const count = nakahigashiFinal.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)).length;
-    if (count < 1) return null; // リトライ
-    const hasNakahigashiExcluded = nakahigashiFinal.some(s => NAKAHIGASHI_EXCLUDE.includes(s.name));
-    if (hasNakahigashiExcluded) return null; // リトライ
+  // 参加人数チェック: 最大9名
+  for (const t of tables) {
+    if (totalAttend(t) > MAX_ATTEND) return null;
   }
 
-  // テーブル内の男女を交互に並べる
-  for (const t of result) {
-    t.sort((a, b) => {
-      if (a.gender !== b.gender) return a.gender === "M" ? -1 : 1;
-      return 0;
-    });
-    // 男女交互に並べ替え
-    const m = t.filter(s => s.gender === "M");
-    const f = t.filter(s => s.gender === "F");
+  // ===== 7. テーブル内の男女交互並べ =====
+  for (const t of tables) {
+    const m = shuffle(t.filter(s => s.gender === "M"));
+    const f = shuffle(t.filter(s => s.gender === "F"));
     const interleaved = [];
     const maxLen = Math.max(m.length, f.length);
     for (let i = 0; i < maxLen; i++) {
@@ -601,7 +637,7 @@ function generateSeating() {
     t.push(...interleaved);
   }
 
-  return result;
+  return tables;
 }
 
 // リトライ付きで生成
@@ -708,11 +744,15 @@ function showResults() {
     const attend = totalAttend(table);
     const mCount = genderCount(table, "M");
     const fCount = genderCount(table, "F");
+    const cls1 = table.filter(s => s.cls === "1組").length;
+    const cls2 = table.filter(s => s.cls === "2組").length;
+
+    const warn = attend > 9 || attend < 7;
 
     card.innerHTML = `
-      <div class="table-header">
+      <div class="table-header" ${warn ? 'style="background:linear-gradient(135deg,#ff9800,#f44336)"' : ''}>
         <span>テーブル ${idx + 1}</span>
-        <span class="people-count">児童${table.length}名 / 参加${attend}名 (男${mCount}・女${fCount})</span>
+        <span class="people-count">${table.length}名(参加${attend}) 男${mCount}女${fCount} [1組${cls1}/2組${cls2}]</span>
       </div>
       <div class="table-body">
         ${table.map(s => `
