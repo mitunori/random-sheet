@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>謝恩会 席順シャッフル</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    color: #fff;
+    font-size: 2.2em;
+    margin: 30px 0 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .subtitle {
+    text-align: center;
+    color: rgba(255,255,255,0.85);
+    font-size: 1.1em;
+    margin-bottom: 30px;
+  }
+
+  #shuffleBtn {
+    display: block;
+    margin: 0 auto 40px;
+    padding: 18px 60px;
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(245,87,108,0.4);
+    transition: all 0.3s ease;
+    letter-spacing: 3px;
+  }
+
+  #shuffleBtn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(245,87,108,0.5);
+  }
+
+  #shuffleBtn:active {
+    transform: translateY(0);
+  }
+
+  #shuffleBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Shuffle animation area */
+  #shuffleArea {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    margin-bottom: 30px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    display: none;
+  }
+
+  .flying-name {
+    position: absolute;
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    transition: all 0.15s ease;
+  }
+
+  .flying-name.male { border-left: 4px solid #4A90D9; }
+  .flying-name.female { border-left: 4px solid #E91E8C; }
+
+  /* Results */
+  #results {
+    display: none;
+  }
+
+  .results-title {
+    text-align: center;
+    color: #fff;
+    font-size: 1.6em;
+    margin: 20px 0 30px;
+    animation: fadeInUp 0.6s ease;
+  }
+
+  .tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .table-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    opacity: 0;
+    transform: translateY(30px);
+    animation: cardReveal 0.5s ease forwards;
+  }
+
+  .table-header {
+    padding: 14px 20px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.1em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .table-header .people-count {
+    font-size: 0.8em;
+    opacity: 0.9;
+    font-weight: normal;
+  }
+
+  .table-card:nth-child(odd) .table-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+  }
+
+  .table-card:nth-child(even) .table-header {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+  }
+
+  .table-body {
+    padding: 12px 20px 16px;
+  }
+
+  .student-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .student-row:last-child {
+    border-bottom: none;
+  }
+
+  .student-class {
+    font-size: 0.75em;
+    color: #888;
+    width: 35px;
+    flex-shrink: 0;
+  }
+
+  .student-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95em;
+  }
+
+  .student-gender {
+    font-size: 0.7em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .student-gender.male {
+    background: #E3F2FD;
+    color: #1565C0;
+  }
+
+  .student-gender.female {
+    background: #FCE4EC;
+    color: #C2185B;
+  }
+
+  .student-attend {
+    font-size: 0.75em;
+    color: #999;
+    width: 40px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  @keyframes cardReveal {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Summary bar */
+  .summary-bar {
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    color: #fff;
+    font-size: 0.95em;
+  }
+
+  .summary-bar span {
+    font-weight: bold;
+  }
+
+  /* Retry button */
+  #retryBtn {
+    display: none;
+    margin: 30px auto;
+    padding: 14px 40px;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #764ba2;
+    background: #fff;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+  }
+
+  #retryBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  }
+
+  .progress-bar {
+    width: 200px;
+    height: 6px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    margin: 0 auto 20px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-bar .fill {
+    height: 100%;
+    width: 0%;
+    background: #fff;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .not-attending-section {
+    margin-top: 20px;
+    text-align: center;
+    color: rgba(255,255,255,0.6);
+    font-size: 0.85em;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>謝恩会 席順シャッフル</h1>
+  <p class="subtitle">2025年度 6年生</p>
+
+  <button id="shuffleBtn" onclick="startShuffle()">シャッフル開始</button>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="fill" id="progressFill"></div>
+  </div>
+
+  <div id="shuffleArea"></div>
+
+  <div id="results">
+    <div class="summary-bar" id="summaryBar"></div>
+    <p class="results-title">席順が決まりました！</p>
+    <div class="tables-grid" id="tablesGrid"></div>
+    <div class="not-attending-section" id="notAttending"></div>
+  </div>
+
+  <button id="retryBtn" onclick="retry()">もう一度シャッフル</button>
+</div>
+
+<script>
+// ===== 生徒データ =====
+const students = [
+  // 1組
+  { id: 1, name: "飯島伊織", cls: "1組", num: 1, attend: 2, gender: "M" },
+  { id: 2, name: "生田啓一郎", cls: "1組", num: 2, attend: 2, gender: "M" },
+  { id: 3, name: "石原由莉奈", cls: "1組", num: 3, attend: 2, gender: "F" },
+  { id: 4, name: "植村嘉", cls: "1組", num: 4, attend: 2, gender: "M" },
+  { id: 5, name: "内山煌", cls: "1組", num: 5, attend: 2, gender: "M" },
+  { id: 6, name: "内山美代", cls: "1組", num: 6, attend: 2, gender: "F" },
+  { id: 7, name: "大野遼真", cls: "1組", num: 7, attend: 2, gender: "M" },
+  { id: 8, name: "小田健吾", cls: "1組", num: 8, attend: 4, gender: "M" },
+  { id: 9, name: "片柳陸", cls: "1組", num: 9, attend: 2, gender: "M" },
+  { id: 10, name: "菊川直太朗", cls: "1組", num: 10, attend: 2, gender: "M" },
+  { id: 11, name: "菊池悠人", cls: "1組", num: 11, attend: 2, gender: "M" },
+  // 倉本令 は参加人数0のため除外
+  { id: 13, name: "佐藤希乃花", cls: "1組", num: 13, attend: 2, gender: "F" },
+  { id: 14, name: "鈴木仁菜", cls: "1組", num: 14, attend: 2, gender: "F" },
+  { id: 15, name: "高橋咲花", cls: "1組", num: 15, attend: 2, gender: "F" },
+  { id: 16, name: "舘碧人", cls: "1組", num: 16, attend: 2, gender: "M" },
+  { id: 17, name: "長南希歩", cls: "1組", num: 17, attend: 2, gender: "F" },
+  { id: 18, name: "中畑正太郎", cls: "1組", num: 18, attend: 3, gender: "M" },
+  { id: 19, name: "中東葉乃", cls: "1組", num: 19, attend: 3, gender: "F" },
+  { id: 20, name: "西原逸生", cls: "1組", num: 20, attend: 2, gender: "M" },
+  { id: 21, name: "日笠志乃", cls: "1組", num: 21, attend: 2, gender: "F" },
+  { id: 22, name: "文田圭胡", cls: "1組", num: 22, attend: 2, gender: "M" },
+  { id: 23, name: "星野結那", cls: "1組", num: 23, attend: 2, gender: "F" },
+  { id: 24, name: "村田有五", cls: "1組", num: 24, attend: 3, gender: "M" },
+  { id: 25, name: "森田心彩", cls: "1組", num: 25, attend: 2, gender: "F" },
+  { id: 26, name: "山田紗瑛", cls: "1組", num: 26, attend: 2, gender: "F" },
+  { id: 27, name: "山本智美", cls: "1組", num: 27, attend: 2, gender: "F" },
+  { id: 28, name: "小暮あかり", cls: "1組", num: 28, attend: 1, gender: "F" },
+
+  // 2組
+  { id: 101, name: "青栁結土", cls: "2組", num: 1, attend: 2, gender: "M" },
+  { id: 102, name: "明石花乃", cls: "2組", num: 2, attend: 2, gender: "F" },
+  { id: 103, name: "秋山蘭花", cls: "2組", num: 3, attend: 3, gender: "F" },
+  { id: 104, name: "安部雄紀", cls: "2組", num: 4, attend: 2, gender: "M" },
+  // 池田侑之 は参加人数0のため除外
+  { id: 106, name: "伊藤晴香", cls: "2組", num: 6, attend: 1, gender: "F" },
+  // 大庭煌誠 は参加人数0のため除外
+  { id: 108, name: "岡本頼親", cls: "2組", num: 8, attend: 2, gender: "M" },
+  { id: 109, name: "荻田直弥", cls: "2組", num: 9, attend: 2, gender: "M" },
+  { id: 110, name: "小田涼葉", cls: "2組", num: 10, attend: 3, gender: "F" },
+  { id: 111, name: "加奥梨乃", cls: "2組", num: 11, attend: 2, gender: "F" },
+  { id: 112, name: "紙上遥汰", cls: "2組", num: 12, attend: 2, gender: "M" },
+  { id: 113, name: "木戸来海", cls: "2組", num: 13, attend: 3, gender: "F" },
+  // 熊谷彩 は参加人数未記入のため除外
+  { id: 115, name: "齊藤凪紗", cls: "2組", num: 15, attend: 2, gender: "F" },
+  { id: 116, name: "下津彰吾", cls: "2組", num: 16, attend: 1, gender: "M" },
+  { id: 117, name: "瀬川結", cls: "2組", num: 17, attend: 2, gender: "F" },
+  { id: 118, name: "関菜渚子", cls: "2組", num: 18, attend: 2, gender: "F" },
+  { id: 119, name: "関口あやめ", cls: "2組", num: 19, attend: 2, gender: "F" },
+  { id: 120, name: "高橋良輔", cls: "2組", num: 20, attend: 1, gender: "M" },
+  { id: 121, name: "東郷仁", cls: "2組", num: 21, attend: 2, gender: "M" },
+  { id: 122, name: "中里優惟", cls: "2組", num: 22, attend: 3, gender: "F" },
+  { id: 123, name: "橋爪瞭太", cls: "2組", num: 23, attend: 2, gender: "M" },
+  { id: 124, name: "早坂航典", cls: "2組", num: 24, attend: 2, gender: "M" },
+  { id: 125, name: "藤塚友悠", cls: "2組", num: 25, attend: 2, gender: "M" },
+  { id: 126, name: "丸山翔", cls: "2組", num: 26, attend: 2, gender: "M" },
+  { id: 127, name: "三宅さち", cls: "2組", num: 27, attend: 2, gender: "F" },
+  { id: 128, name: "尾園るなさら", cls: "2組", num: 28, attend: 3, gender: "F" },
+];
+
+// ===== 制約条件 =====
+// 森田心彩と同じテーブルにしない人
+const MORITA_EXCLUDE = ["西原逸生", "加奥梨乃", "関菜渚子", "鈴木仁菜"];
+
+// 中東葉乃と同じテーブルに入れる候補（最低1人、できれば2人）
+const NAKAHIGASHI_INCLUDE = ["舘碧人", "片柳陸", "大野遼真"];
+
+// 中東葉乃と同じテーブルにしない人
+const NAKAHIGASHI_EXCLUDE = ["関菜渚子"];
+
+// ===== ユーティリティ =====
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function totalAttend(group) {
+  return group.reduce((s, st) => s + st.attend, 0);
+}
+
+function genderCount(group, g) {
+  return group.filter(s => s.gender === g).length;
+}
+
+// ===== 席順アルゴリズム =====
+function generateSeating() {
+  const males = shuffle(students.filter(s => s.gender === "M"));
+  const females = shuffle(students.filter(s => s.gender === "F"));
+
+  // 制約対象の生徒を取得
+  const nakahigashi = students.find(s => s.name === "中東葉乃");
+  const morita = students.find(s => s.name === "森田心彩");
+  const nakahigashiCandidates = students.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name));
+  const moritaExcluded = students.filter(s => MORITA_EXCLUDE.includes(s.name));
+
+  // まず中東葉乃のテーブルを作る
+  const shuffledCandidates = shuffle(nakahigashiCandidates);
+  // 1〜2人を選ぶ（ランダムに1人か2人）
+  const numPick = Math.random() < 0.6 ? 2 : 1;
+  const pickedForNakahigashi = shuffledCandidates.slice(0, numPick);
+
+  // 中東葉乃テーブルのメンバーを構成
+  const nakahigashiTable = [nakahigashi, ...pickedForNakahigashi];
+  const usedIds = new Set(nakahigashiTable.map(s => s.id));
+
+  // 中東葉乃テーブルの残り枠を埋める（男女バランス考慮）
+  const currentM = genderCount(nakahigashiTable, "M");
+  const currentF = genderCount(nakahigashiTable, "F");
+  const tableSize = 4; // 基本4人
+
+  let needM = 2 - currentM;
+  let needF = 2 - currentF;
+
+  // 4人に足りない場合の調整
+  const totalNeeded = tableSize - nakahigashiTable.length;
+  if (needM + needF !== totalNeeded) {
+    // 5人テーブルにするか調整
+    if (needM < 0) { needM = 0; needF = totalNeeded; }
+    if (needF < 0) { needF = 0; needM = totalNeeded; }
+  }
+
+  const availMales = males.filter(s => !usedIds.has(s.id) && !MORITA_EXCLUDE.includes(s.name) && !NAKAHIGASHI_EXCLUDE.includes(s.name));
+  const availFemales = females.filter(s => !usedIds.has(s.id) && s.name !== "森田心彩" && !MORITA_EXCLUDE.includes(s.name) && !NAKAHIGASHI_EXCLUDE.includes(s.name));
+
+  for (let i = 0; i < needM && availMales.length > 0; i++) {
+    const s = availMales.shift();
+    nakahigashiTable.push(s);
+    usedIds.add(s.id);
+  }
+  for (let i = 0; i < needF && availFemales.length > 0; i++) {
+    const s = availFemales.shift();
+    nakahigashiTable.push(s);
+    usedIds.add(s.id);
+  }
+
+  // 参加人数チェック: 7-9に収まるか確認、収まらなければ5人テーブルにするか調整
+  let attend = totalAttend(nakahigashiTable);
+  if (attend < 7 && nakahigashiTable.length < 5) {
+    // 高参加人数の生徒を追加
+    const extra = [...males, ...females].filter(s => !usedIds.has(s.id) && s.attend >= 2);
+    if (extra.length > 0) {
+      const pick = extra[0];
+      nakahigashiTable.push(pick);
+      usedIds.add(pick.id);
+    }
+  }
+
+  // 森田心彩のテーブルを作る（除外メンバーを避ける）
+  const moritaTable = [morita];
+  usedIds.add(morita.id);
+
+  const moritaAvailM = males.filter(s => !usedIds.has(s.id) && !MORITA_EXCLUDE.includes(s.name));
+  const moritaAvailF = females.filter(s => !usedIds.has(s.id) && s.name !== "森田心彩" && !MORITA_EXCLUDE.includes(s.name));
+
+  // 男2女2 → 森田は女なので男2女1追加
+  for (let i = 0; i < 2 && moritaAvailM.length > 0; i++) {
+    const s = moritaAvailM.shift();
+    moritaTable.push(s);
+    usedIds.add(s.id);
+  }
+  for (let i = 0; i < 1 && moritaAvailF.length > 0; i++) {
+    const s = moritaAvailF.shift();
+    moritaTable.push(s);
+    usedIds.add(s.id);
+  }
+
+  // 参加人数調整
+  attend = totalAttend(moritaTable);
+  if (attend < 7 && moritaTable.length < 5) {
+    const extra = [...males, ...females].filter(s =>
+      !usedIds.has(s.id) && !MORITA_EXCLUDE.includes(s.name) && s.attend >= 2
+    );
+    if (extra.length > 0) {
+      moritaTable.push(extra[0]);
+      usedIds.add(extra[0].id);
+    }
+  }
+
+  // 残りの生徒を振り分け
+  const remaining = students.filter(s => !usedIds.has(s.id));
+  const remMales = shuffle(remaining.filter(s => s.gender === "M"));
+  const remFemales = shuffle(remaining.filter(s => s.gender === "F"));
+
+  const tables = [nakahigashiTable, moritaTable];
+
+  // 残りをテーブルに分配
+  // 各テーブル男2女2基本で作る
+  let mi = 0, fi = 0;
+  while (mi < remMales.length || fi < remFemales.length) {
+    const table = [];
+    // 男2
+    for (let i = 0; i < 2 && mi < remMales.length; i++) {
+      table.push(remMales[mi++]);
+    }
+    // 女2
+    for (let i = 0; i < 2 && fi < remFemales.length; i++) {
+      table.push(remFemales[fi++]);
+    }
+    if (table.length > 0) {
+      tables.push(table);
+    }
+  }
+
+  // 参加人数の調整: 小さいテーブルを統合、大きいテーブルを分割
+  // まず小さすぎるテーブル（1-2人）を他に振り分け
+  const finalTables = [];
+  const stragglers = [];
+
+  for (const t of tables) {
+    if (t.length <= 2) {
+      stragglers.push(...t);
+    } else {
+      finalTables.push(t);
+    }
+  }
+
+  // stragglersを既存テーブルに追加（参加人数が少ないテーブルから）
+  for (const s of stragglers) {
+    // 参加人数が最も少ないテーブルに追加（ただし5人以下）
+    let bestIdx = -1;
+    let bestAttend = Infinity;
+    for (let i = 0; i < finalTables.length; i++) {
+      const att = totalAttend(finalTables[i]);
+      if (finalTables[i].length < 5 && att < bestAttend) {
+        bestAttend = att;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx >= 0) {
+      finalTables[bestIdx].push(s);
+    } else {
+      // 新テーブル作成
+      finalTables.push([s]);
+    }
+  }
+
+  // テーブルが参加人数10以上の場合、分割を試みる
+  const result = [];
+  for (const t of finalTables) {
+    if (totalAttend(t) > 9 && t.length >= 6) {
+      // 2つに分割
+      const half = Math.ceil(t.length / 2);
+      result.push(t.slice(0, half));
+      result.push(t.slice(half));
+    } else {
+      result.push(t);
+    }
+  }
+
+  // 制約検証
+  // 森田心彩テーブルに除外メンバーがいないか確認
+  const moritaFinal = result.find(t => t.some(s => s.name === "森田心彩"));
+  if (moritaFinal) {
+    const hasExcluded = moritaFinal.some(s => MORITA_EXCLUDE.includes(s.name));
+    if (hasExcluded) return null; // リトライ
+  }
+
+  // 中東葉乃テーブルに候補が1人以上いるか確認
+  const nakahigashiFinal = result.find(t => t.some(s => s.name === "中東葉乃"));
+  if (nakahigashiFinal) {
+    const count = nakahigashiFinal.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)).length;
+    if (count < 1) return null; // リトライ
+    const hasNakahigashiExcluded = nakahigashiFinal.some(s => NAKAHIGASHI_EXCLUDE.includes(s.name));
+    if (hasNakahigashiExcluded) return null; // リトライ
+  }
+
+  // テーブル内の男女を交互に並べる
+  for (const t of result) {
+    t.sort((a, b) => {
+      if (a.gender !== b.gender) return a.gender === "M" ? -1 : 1;
+      return 0;
+    });
+    // 男女交互に並べ替え
+    const m = t.filter(s => s.gender === "M");
+    const f = t.filter(s => s.gender === "F");
+    const interleaved = [];
+    const maxLen = Math.max(m.length, f.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < m.length) interleaved.push(m[i]);
+      if (i < f.length) interleaved.push(f[i]);
+    }
+    t.length = 0;
+    t.push(...interleaved);
+  }
+
+  return result;
+}
+
+// リトライ付きで生成
+function generateWithRetry(maxRetries = 100) {
+  for (let i = 0; i < maxRetries; i++) {
+    const result = generateSeating();
+    if (result) return result;
+  }
+  // フォールバック: 制約なしで生成
+  console.warn("制約を満たす配置が見つかりませんでした。再試行してください。");
+  return generateSeating() || [students];
+}
+
+// ===== UI =====
+let currentResult = null;
+
+function startShuffle() {
+  const btn = document.getElementById("shuffleBtn");
+  btn.disabled = true;
+  btn.textContent = "シャッフル中...";
+
+  document.getElementById("results").style.display = "none";
+  document.getElementById("retryBtn").style.display = "none";
+
+  // 結果を先に計算
+  currentResult = generateWithRetry();
+
+  // シャッフルアニメーション
+  const area = document.getElementById("shuffleArea");
+  area.style.display = "block";
+  area.innerHTML = "";
+
+  const progressBar = document.getElementById("progressBar");
+  const progressFill = document.getElementById("progressFill");
+  progressBar.style.display = "block";
+
+  // 名前カードを配置
+  const names = shuffle(students);
+  const cards = [];
+  names.forEach((s, i) => {
+    const el = document.createElement("div");
+    el.className = `flying-name ${s.gender === "M" ? "male" : "female"}`;
+    el.textContent = s.name;
+    el.style.left = Math.random() * (area.offsetWidth - 120) + "px";
+    el.style.top = Math.random() * (area.offsetHeight - 30) + "px";
+    area.appendChild(el);
+    cards.push(el);
+  });
+
+  // アニメーション
+  let frame = 0;
+  const totalFrames = 120;
+  const animInterval = setInterval(() => {
+    frame++;
+    progressFill.style.width = (frame / totalFrames * 100) + "%";
+
+    cards.forEach(card => {
+      const speed = frame < totalFrames * 0.7 ? 1 : (1 - (frame - totalFrames * 0.7) / (totalFrames * 0.3));
+      const dx = (Math.random() - 0.5) * 40 * speed;
+      const dy = (Math.random() - 0.5) * 30 * speed;
+      const x = parseFloat(card.style.left) + dx;
+      const y = parseFloat(card.style.top) + dy;
+      card.style.left = Math.max(0, Math.min(area.offsetWidth - 120, x)) + "px";
+      card.style.top = Math.max(0, Math.min(area.offsetHeight - 30, y)) + "px";
+      card.style.opacity = frame > totalFrames * 0.85 ? Math.max(0, 1 - (frame - totalFrames * 0.85) / (totalFrames * 0.15)) : 1;
+    });
+
+    if (frame >= totalFrames) {
+      clearInterval(animInterval);
+      area.style.display = "none";
+      progressBar.style.display = "none";
+      progressFill.style.width = "0%";
+      showResults();
+    }
+  }, 33);
+}
+
+function showResults() {
+  const btn = document.getElementById("shuffleBtn");
+  btn.disabled = false;
+  btn.textContent = "シャッフル開始";
+  btn.style.display = "none";
+
+  document.getElementById("retryBtn").style.display = "block";
+
+  const results = document.getElementById("results");
+  results.style.display = "block";
+
+  // サマリー
+  const totalStudents = currentResult.reduce((s, t) => s + t.length, 0);
+  const totalPeople = currentResult.reduce((s, t) => s + totalAttend(t), 0);
+  document.getElementById("summaryBar").innerHTML =
+    `テーブル数: <span>${currentResult.length}</span> ／ 児童数: <span>${totalStudents}名</span> ／ 参加人数合計: <span>${totalPeople}名</span>`;
+
+  // テーブル表示
+  const grid = document.getElementById("tablesGrid");
+  grid.innerHTML = "";
+
+  currentResult.forEach((table, idx) => {
+    const card = document.createElement("div");
+    card.className = "table-card";
+    card.style.animationDelay = `${idx * 0.15}s`;
+
+    const attend = totalAttend(table);
+    const mCount = genderCount(table, "M");
+    const fCount = genderCount(table, "F");
+
+    card.innerHTML = `
+      <div class="table-header">
+        <span>テーブル ${idx + 1}</span>
+        <span class="people-count">児童${table.length}名 / 参加${attend}名 (男${mCount}・女${fCount})</span>
+      </div>
+      <div class="table-body">
+        ${table.map(s => `
+          <div class="student-row">
+            <span class="student-class">${s.cls}</span>
+            <span class="student-name">${s.name}</span>
+            <span class="student-gender ${s.gender === 'M' ? 'male' : 'female'}">${s.gender === 'M' ? '男' : '女'}</span>
+            <span class="student-attend">${s.attend}名</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // 不参加者
+  const notAttending = ["倉本令(1組)", "池田侑之(2組)", "大庭煌誠(2組)", "熊谷彩(2組)"];
+  document.getElementById("notAttending").innerHTML =
+    `不参加: ${notAttending.join("、")}`;
+}
+
+function retry() {
+  document.getElementById("results").style.display = "none";
+  document.getElementById("retryBtn").style.display = "none";
+  document.getElementById("shuffleBtn").style.display = "block";
+  startShuffle();
+}
+</script>
+
+</body>
+</html>
