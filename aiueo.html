@@ -467,6 +467,45 @@
         return score;
       }
 
+      // step 3a: fix over-capacity tables first
+
+      for (let fix = 0; fix < 50; fix++) {
+        let fixed = false;
+        for (let i = 0; i < NUM_TABLES; i++) {
+          if (totalAttend(tables[i]) <= MAX_ATTEND) continue;
+          for (let si = 0; si < tables[i].length; si++) {
+            const s1 = tables[i][si];
+            let bestJ = -1, bestSj = -1, bestDelta = 0;
+            for (let j = 0; j < NUM_TABLES; j++) {
+              if (i === j) continue;
+              for (let sj = 0; sj < tables[j].length; sj++) {
+                const s2 = tables[j][sj];
+                if (s1.gender !== s2.gender) continue;
+                if (s1.attend <= s2.attend) continue;
+                const newAi = totalAttend(tables[i]) - s1.attend + s2.attend;
+                const newAj = totalAttend(tables[j]) - s2.attend + s1.attend;
+                if (newAi > MAX_ATTEND || newAj > MAX_ATTEND) continue;
+                const delta = s1.attend - s2.attend;
+                if (delta > bestDelta) {
+                  bestDelta = delta; bestJ = j; bestSj = sj;
+                }
+              }
+            }
+            if (bestJ >= 0) {
+              const tmp = tables[i][si];
+              tables[i][si] = tables[bestJ][bestSj];
+              tables[bestJ][bestSj] = tmp;
+              fixed = true;
+              break;
+            }
+          }
+          if (fixed) break;
+        }
+        if (!fixed) break;
+      }
+
+
+      // step 3b: constraint optimization
       for (let pass = 0; pass < 20; pass++) {
         let improved = false;
         for (let i = 0; i < NUM_TABLES; i++) {
@@ -514,8 +553,37 @@
         if (!improved) break;
       }
 
-      // step 4: validation (best-effort, no reject)
+      // step 4: final capacity fix
+      for (let fix = 0; fix < 50; fix++) {
+        let fixed = false;
+        for (let i = 0; i < NUM_TABLES; i++) {
+          if (totalAttend(tables[i]) <= MAX_ATTEND) continue;
+          for (let si = 0; si < tables[i].length; si++) {
+            const s1 = tables[i][si];
+            for (let j = 0; j < NUM_TABLES; j++) {
+              if (i === j) continue;
+              for (let sj = 0; sj < tables[j].length; sj++) {
+                const s2 = tables[j][sj];
+                if (s1.gender !== s2.gender) continue;
+                if (s1.attend <= s2.attend) continue;
+                const newAi = totalAttend(tables[i]) - s1.attend + s2.attend;
+                const newAj = totalAttend(tables[j]) - s2.attend + s1.attend;
+                if (newAi > MAX_ATTEND || newAj > MAX_ATTEND) continue;
+                tables[i][si] = s2;
+                tables[j][sj] = s1;
+                fixed = true;
+                break;
+              }
+              if (fixed) break;
+            }
+            if (fixed) break;
+          }
+          if (fixed) break;
+        }
+        if (!fixed) break;
+      }
 
+      console.log('after fix 4:', tables.map(t => totalAttend(t)));
       // step 5: record metadata
       const status = [];
       const _tB = tables.find(t => t.some(s => s.name === "中東葉乃"));
