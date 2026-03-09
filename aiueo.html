@@ -446,22 +446,21 @@ function generateSeating() {
     let score = 0;
     const moritaT = tbls.find(t => t.some(s => s.name === "森田心彩"));
     if (moritaT) {
-      // 除外メンバーがいたらペナルティ
       for (const s of moritaT) {
         if (MORITA_EXCLUDE.includes(s.name)) score += 10;
       }
-      // 鈴木仁菜がいたらボーナス
       if (moritaT.some(s => MORITA_INCLUDE.includes(s.name))) score -= 5;
     }
     const nakaT = tbls.find(t => t.some(s => s.name === "中東葉乃"));
     if (nakaT) {
-      // 除外メンバーがいたらペナルティ
       for (const s of nakaT) {
-        if (NAKAHIGASHI_EXCLUDE.includes(s.name)) score += 10;
+        if (NAKAHIGASHI_EXCLUDE.includes(s.name)) score += 15;
       }
-      // 候補メンバーがいたらボーナス
-      const cnt = nakaT.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)).length;
-      score -= cnt * 5;
+      // 舘碧人との同席を最優先（重み大）
+      if (nakaT.some(s => s.name === "舘碧人")) score -= 30;
+      // 他の候補（片柳・大野）もボーナス
+      const otherCnt = nakaT.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name) && s.name !== "舘碧人").length;
+      score -= otherCnt * 8;
     }
     return score;
   }

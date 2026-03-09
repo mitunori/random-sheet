@@ -417,9 +417,10 @@ function generateSeating() {
 
   // --- 中東葉乃テーブル ---
   const nakahigashi = students.find(s => s.name === "中東葉乃");
-  const candidates = shuffle(students.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)));
-  const numPick = Math.random() < 0.6 ? 2 : 1;
-  const picked = candidates.slice(0, numPick);
+  const tate = students.find(s => s.name === "舘碧人"); // 舘碧人は必ず含める
+  const otherCandidates = shuffle(students.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name) && s.name !== "舘碧人"));
+  // 舘碧人 + 70%の確率でもう1人追加
+  const picked = [tate, ...(Math.random() < 0.7 ? otherCandidates.slice(0, 1) : [])];
   const table0 = [nakahigashi, ...picked];
   table0.forEach(s => usedIds.add(s.id));
 
