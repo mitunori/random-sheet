@@ -1,671 +1,661 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>謝恩会 席順シャッフル（あいうえお順ベース）</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>謝恩会 席順シャッフル（あいうえお順ベース）</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-  body {
-    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    color: #333;
-  }
+    body {
+      font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
 
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-  }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
 
-  h1 {
-    text-align: center;
-    color: #fff;
-    font-size: 2.2em;
-    margin: 30px 0 10px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-  }
+    h1 {
+      text-align: center;
+      color: #fff;
+      font-size: 2.2em;
+      margin: 30px 0 10px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
 
-  .subtitle {
-    text-align: center;
-    color: rgba(255,255,255,0.85);
-    font-size: 1.1em;
-    margin-bottom: 30px;
-  }
+    .subtitle {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 1.1em;
+      margin-bottom: 30px;
+    }
 
-  #shuffleBtn {
-    display: block;
-    margin: 0 auto 40px;
-    padding: 18px 60px;
-    font-size: 1.4em;
-    font-weight: bold;
-    color: #fff;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-    box-shadow: 0 8px 25px rgba(245,87,108,0.4);
-    transition: all 0.3s ease;
-    letter-spacing: 3px;
-  }
+    #shuffleBtn {
+      display: block;
+      margin: 0 auto 40px;
+      padding: 18px 60px;
+      font-size: 1.4em;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
+      transition: all 0.3s ease;
+      letter-spacing: 3px;
+    }
 
-  #shuffleBtn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 35px rgba(245,87,108,0.5);
-  }
+    #shuffleBtn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(245, 87, 108, 0.5);
+    }
 
-  #shuffleBtn:active {
-    transform: translateY(0);
-  }
-
-  #shuffleBtn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  /* Shuffle animation area */
-  #shuffleArea {
-    position: relative;
-    width: 100%;
-    height: 300px;
-    margin-bottom: 30px;
-    overflow: hidden;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(10px);
-    display: none;
-  }
-
-  .flying-name {
-    position: absolute;
-    padding: 6px 14px;
-    background: rgba(255,255,255,0.9);
-    border-radius: 20px;
-    font-size: 0.85em;
-    font-weight: 600;
-    white-space: nowrap;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-    transition: all 0.15s ease;
-  }
-
-  .flying-name.male { border-left: 4px solid #4A90D9; }
-  .flying-name.female { border-left: 4px solid #E91E8C; }
-
-  /* Results */
-  #results {
-    display: none;
-  }
-
-  .results-title {
-    text-align: center;
-    color: #fff;
-    font-size: 1.6em;
-    margin: 20px 0 30px;
-    animation: fadeInUp 0.6s ease;
-  }
-
-  .tables-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-    margin-bottom: 40px;
-  }
-
-  .table-card {
-    background: #fff;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    opacity: 0;
-    transform: translateY(30px);
-    animation: cardReveal 0.5s ease forwards;
-  }
-
-  .table-header {
-    padding: 14px 20px;
-    color: #fff;
-    font-weight: bold;
-    font-size: 1.1em;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .table-header .people-count {
-    font-size: 0.8em;
-    opacity: 0.9;
-    font-weight: normal;
-  }
-
-  .table-card:nth-child(odd) .table-header {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-  }
-
-  .table-card:nth-child(even) .table-header {
-    background: linear-gradient(135deg, #f093fb, #f5576c);
-  }
-
-  .table-body {
-    padding: 12px 20px 16px;
-  }
-
-  .student-row {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #f0f0f0;
-  }
-
-  .student-row:last-child {
-    border-bottom: none;
-  }
-
-  .student-class {
-    font-size: 0.75em;
-    color: #888;
-    width: 35px;
-    flex-shrink: 0;
-  }
-
-  .student-name {
-    flex: 1;
-    font-weight: 600;
-    font-size: 0.95em;
-  }
-
-  .student-gender {
-    font-size: 0.7em;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 600;
-  }
-
-  .student-gender.male {
-    background: #E3F2FD;
-    color: #1565C0;
-  }
-
-  .student-gender.female {
-    background: #FCE4EC;
-    color: #C2185B;
-  }
-
-  .student-attend {
-    font-size: 0.75em;
-    color: #999;
-    width: 40px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  @keyframes cardReveal {
-    to {
-      opacity: 1;
+    #shuffleBtn:active {
       transform: translateY(0);
     }
-  }
 
-  @keyframes fadeInUp {
-    from {
+    #shuffleBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Shuffle animation area */
+    #shuffleArea {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      margin-bottom: 30px;
+      overflow: hidden;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      display: none;
+    }
+
+    .flying-name {
+      position: absolute;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      transition: all 0.15s ease;
+    }
+
+    .flying-name.male {
+      border-left: 4px solid #4A90D9;
+    }
+
+    .flying-name.female {
+      border-left: 4px solid #E91E8C;
+    }
+
+    /* Results */
+    #results {
+      display: none;
+    }
+
+    .results-title {
+      text-align: center;
+      color: #fff;
+      font-size: 1.6em;
+      margin: 20px 0 30px;
+      animation: fadeInUp 0.6s ease;
+    }
+
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .table-card {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(30px);
+      animation: cardReveal 0.5s ease forwards;
     }
-    to {
-      opacity: 1;
-      transform: translateY(0);
+
+    .table-header {
+      padding: 14px 20px;
+      color: #fff;
+      font-weight: bold;
+      font-size: 1.1em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-  }
 
-  /* Summary bar */
-  .summary-bar {
-    background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 16px 24px;
-    margin-bottom: 24px;
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    color: #fff;
-    font-size: 0.95em;
-  }
+    .table-header .people-count {
+      font-size: 0.8em;
+      opacity: 0.9;
+      font-weight: normal;
+    }
 
-  .summary-bar span {
-    font-weight: bold;
-  }
+    .table-card:nth-child(odd) .table-header {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
 
-  /* Retry button */
-  #retryBtn {
-    display: none;
-    margin: 30px auto;
-    padding: 14px 40px;
-    font-size: 1.1em;
-    font-weight: bold;
-    color: #764ba2;
-    background: #fff;
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
-  }
+    .table-card:nth-child(even) .table-header {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+    }
 
-  #retryBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-  }
+    .table-body {
+      padding: 12px 20px 16px;
+    }
 
-  .progress-bar {
-    width: 200px;
-    height: 6px;
-    background: rgba(255,255,255,0.3);
-    border-radius: 3px;
-    margin: 0 auto 20px;
-    overflow: hidden;
-    display: none;
-  }
+    .student-row {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
 
-  .progress-bar .fill {
-    height: 100%;
-    width: 0%;
-    background: #fff;
-    border-radius: 3px;
-    transition: width 0.3s ease;
-  }
+    .student-row:last-child {
+      border-bottom: none;
+    }
 
-  .not-attending-section {
-    margin-top: 20px;
-    text-align: center;
-    color: rgba(255,255,255,0.6);
-    font-size: 0.85em;
-  }
-</style>
+    .student-class {
+      font-size: 0.75em;
+      color: #888;
+      width: 35px;
+      flex-shrink: 0;
+    }
+
+    .student-name {
+      flex: 1;
+      font-weight: 600;
+      font-size: 0.95em;
+    }
+
+    .student-gender {
+      font-size: 0.7em;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .student-gender.male {
+      background: #E3F2FD;
+      color: #1565C0;
+    }
+
+    .student-gender.female {
+      background: #FCE4EC;
+      color: #C2185B;
+    }
+
+    .student-attend {
+      font-size: 0.75em;
+      color: #999;
+      width: 40px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    @keyframes cardReveal {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Summary bar */
+    .summary-bar {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      color: #fff;
+      font-size: 0.95em;
+    }
+
+    .summary-bar span {
+      font-weight: bold;
+    }
+
+    /* Retry button */
+    #retryBtn {
+      display: none;
+      margin: 30px auto;
+      padding: 14px 40px;
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #764ba2;
+      background: #fff;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    #retryBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .progress-bar {
+      width: 200px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      margin: 0 auto 20px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      width: 0%;
+      background: #fff;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .not-attending-section {
+      margin-top: 20px;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.85em;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="container">
-  <h1>謝恩会 席順シャッフル</h1>
-  <p class="subtitle">2025年度 6年生（あいうえお順ベース）</p>
+  <div class="container">
+    <h1>謝恩会 席順シャッフル</h1>
+    <p class="subtitle">2025年度 6年生（あいうえお順ベース）</p>
 
-  <button id="shuffleBtn" onclick="startShuffle()">シャッフル開始</button>
+    <button id="shuffleBtn" onclick="startShuffle()">シャッフル開始</button>
 
-  <div class="progress-bar" id="progressBar">
-    <div class="fill" id="progressFill"></div>
+    <div class="progress-bar" id="progressBar">
+      <div class="fill" id="progressFill"></div>
+    </div>
+
+    <div id="shuffleArea"></div>
+
+    <div id="results">
+      <div class="summary-bar" id="summaryBar"></div>
+      <p class="results-title">席順が決まりました！</p>
+      <div id="statusInfo"
+        style="background:rgba(255,255,255,0.12);border-radius:12px;padding:14px 20px;margin-bottom:20px;color:#fff;font-size:0.9em;line-height:1.8;display:none;">
+      </div>
+      <div class="tables-grid" id="tablesGrid"></div>
+      <div class="not-attending-section" id="notAttending"></div>
+    </div>
+
+    <button id="retryBtn" onclick="retry()">もう一度シャッフル</button>
   </div>
 
-  <div id="shuffleArea"></div>
+  <script>
+    // data
+    const students = [
+      // 1組
+      { id: 1, name: "飯島伊鯉", cls: "1組", num: 1, attend: 2, gender: "M", kana: "いいじまいおり" },
+      { id: 2, name: "生田啓一郎", cls: "1組", num: 2, attend: 2, gender: "M", kana: "いくたけいいちろう" },
+      { id: 3, name: "石原由莉奈", cls: "1組", num: 3, attend: 2, gender: "F", kana: "いしはらゆりな" },
+      { id: 4, name: "植村嘉", cls: "1組", num: 4, attend: 2, gender: "M", kana: "うえむらよしみ" },
+      { id: 5, name: "内山煌", cls: "1組", num: 5, attend: 2, gender: "M", kana: "うちやまこう" },
+      { id: 6, name: "内山美代", cls: "1組", num: 6, attend: 2, gender: "F", kana: "うちやまみよ" },
+      { id: 7, name: "大野遼真", cls: "1組", num: 7, attend: 2, gender: "M", kana: "おおのりょうま" },
+      { id: 8, name: "小田健吾", cls: "1組", num: 8, attend: 4, gender: "M", kana: "おだけんご" },
+      { id: 9, name: "片柳陸", cls: "1組", num: 9, attend: 2, gender: "M", kana: "かたやなぎりく" },
+      { id: 10, name: "菊川直太朗", cls: "1組", num: 10, attend: 2, gender: "M", kana: "きくかわなおたろう" },
+      { id: 11, name: "菊池悠人", cls: "1組", num: 11, attend: 2, gender: "M", kana: "きくちはると" },
+      { id: 28, name: "小暮あかり", cls: "1組", num: 28, attend: 1, gender: "F", kana: "こぐれあかり" },
+      // skipped
+      { id: 13, name: "佐藤希乃花", cls: "1組", num: 13, attend: 2, gender: "F", kana: "さとうほのか" },
+      { id: 14, name: "鈴木仁菜", cls: "1組", num: 14, attend: 2, gender: "F", kana: "すずきにいな" },
+      { id: 15, name: "高橋咲花", cls: "1組", num: 15, attend: 2, gender: "F", kana: "たかはしえみか" },
+      { id: 16, name: "舘碧人", cls: "1組", num: 16, attend: 2, gender: "M", kana: "たちあいと" },
+      { id: 17, name: "長南希歩", cls: "1組", num: 17, attend: 2, gender: "F", kana: "ちょうなんきほ" },
+      { id: 18, name: "中畑正太郎", cls: "1組", num: 18, attend: 3, gender: "M", kana: "なかはたしょうたろう" },
+      { id: 19, name: "中東葉乃", cls: "1組", num: 19, attend: 3, gender: "F", kana: "なかひがしはの" },
+      { id: 20, name: "西原逸生", cls: "1組", num: 20, attend: 2, gender: "M", kana: "にしはらいつき" },
+      { id: 21, name: "日笠志乃", cls: "1組", num: 21, attend: 2, gender: "F", kana: "ひかさしの" },
+      { id: 22, name: "文田圭胡", cls: "1組", num: 22, attend: 2, gender: "M", kana: "ふみたけいご" },
+      { id: 23, name: "星野結那", cls: "1組", num: 23, attend: 2, gender: "F", kana: "ほしのゆな" },
+      { id: 24, name: "村田有五", cls: "1組", num: 24, attend: 3, gender: "M", kana: "むらたゆうご" },
+      { id: 25, name: "森田心彩", cls: "1組", num: 25, attend: 2, gender: "F", kana: "もりたみあ" },
+      { id: 26, name: "山田紗瑛", cls: "1組", num: 26, attend: 2, gender: "F", kana: "やまださえ" },
+      { id: 27, name: "山本智美", cls: "1組", num: 27, attend: 2, gender: "F", kana: "やまもとともみ" },
 
-  <div id="results">
-    <div class="summary-bar" id="summaryBar"></div>
-    <p class="results-title">席順が決まりました！</p>
-    <div id="statusInfo" style="background:rgba(255,255,255,0.12);border-radius:12px;padding:14px 20px;margin-bottom:20px;color:#fff;font-size:0.9em;line-height:1.8;display:none;"></div>
-    <div class="tables-grid" id="tablesGrid"></div>
-    <div class="not-attending-section" id="notAttending"></div>
-  </div>
+      // 2組
+      { id: 101, name: "青栁結土", cls: "2組", num: 1, attend: 2, gender: "M", kana: "あおやぎゆいと" },
+      { id: 102, name: "明石花乃", cls: "2組", num: 2, attend: 2, gender: "F", kana: "あかしはなの" },
+      { id: 103, name: "秋山蘭花", cls: "2組", num: 3, attend: 3, gender: "F", kana: "あきやまらんか" },
+      { id: 104, name: "安部雄紀", cls: "2組", num: 4, attend: 2, gender: "M", kana: "あべゆうき" },
+      // skipped
+      { id: 106, name: "伊藤晴香", cls: "2組", num: 6, attend: 1, gender: "F", kana: "いとうはるか" },
+      // skipped
+      { id: 128, name: "尾園るなさら", cls: "2組", num: 28, attend: 3, gender: "F", kana: "おぞのるなさら" },
+      { id: 108, name: "岡本頼親", cls: "2組", num: 8, attend: 2, gender: "M", kana: "おかもとよりちか" },
+      { id: 109, name: "荻田直弥", cls: "2組", num: 9, attend: 2, gender: "M", kana: "おぎたなおや" },
+      { id: 110, name: "小田涼葉", cls: "2組", num: 10, attend: 3, gender: "F", kana: "おだすずは" },
+      { id: 111, name: "加奥梨乃", cls: "2組", num: 11, attend: 2, gender: "F", kana: "かおくりの" },
+      { id: 112, name: "紙上遥汰", cls: "2組", num: 12, attend: 2, gender: "M", kana: "かみうえようた" },
+      { id: 113, name: "木戸来海", cls: "2組", num: 13, attend: 3, gender: "F", kana: "きどくるみ" },
+      // skipped
+      { id: 115, name: "齊藤凪紗", cls: "2組", num: 15, attend: 2, gender: "F", kana: "さいとうなぎさ" },
+      { id: 116, name: "下津彰吾", cls: "2組", num: 16, attend: 1, gender: "M", kana: "しもつしょうご" },
+      { id: 117, name: "瀬川結", cls: "2組", num: 17, attend: 2, gender: "F", kana: "せがわゆい" },
+      { id: 118, name: "関菜渚子", cls: "2組", num: 18, attend: 2, gender: "F", kana: "せきななこ" },
+      { id: 119, name: "関口あやめ", cls: "2組", num: 19, attend: 2, gender: "F", kana: "せきぐちあやめ" },
+      { id: 120, name: "高橋良輔", cls: "2組", num: 20, attend: 1, gender: "M", kana: "たかはしりょうすけ" },
+      { id: 121, name: "東郷仁", cls: "2組", num: 21, attend: 2, gender: "M", kana: "とうごうじん" },
+      { id: 122, name: "中里優惟", cls: "2組", num: 22, attend: 3, gender: "F", kana: "なかざとゆい" },
+      { id: 123, name: "橋爪瞭太", cls: "2組", num: 23, attend: 2, gender: "M", kana: "はしづめりょうた" },
+      { id: 124, name: "早坂航典", cls: "2組", num: 24, attend: 2, gender: "M", kana: "はやさかこうすけ" },
+      { id: 125, name: "藤塚友悠", cls: "2組", num: 25, attend: 2, gender: "M", kana: "ふじつかゆう" },
+      { id: 126, name: "丸山翔", cls: "2組", num: 26, attend: 2, gender: "M", kana: "まるやまかける" },
+      { id: 127, name: "三宅さち", cls: "2組", num: 27, attend: 2, gender: "F", kana: "みやけさち" },
+    ];
 
-  <button id="retryBtn" onclick="retry()">もう一度シャッフル</button>
-</div>
+    // config
+    const _cfgA = ["西原逸生", "加奥梨乃", "関菜渚子", "飯島伊鯉"];
+    // config
+    const _cfgB = ["鈴木仁菜"];
+    // config
+    const _cfgC = ["舘碧人", "片柳陸", "大野遼真"];
+    // config
+    const _cfgD = ["関菜渚子"];
 
-<script>
-// data
-const students = [
-  // 1組
-  { id: 1, name: "飯島伊鯉", cls: "1組", num: 1, attend: 2, gender: "M" },
-  { id: 2, name: "生田啓一郎", cls: "1組", num: 2, attend: 2, gender: "M" },
-  { id: 3, name: "石原由莉奈", cls: "1組", num: 3, attend: 2, gender: "F" },
-  { id: 4, name: "植村嘉", cls: "1組", num: 4, attend: 2, gender: "M" },
-  { id: 5, name: "内山煌", cls: "1組", num: 5, attend: 2, gender: "M" },
-  { id: 6, name: "内山美代", cls: "1組", num: 6, attend: 2, gender: "F" },
-  { id: 7, name: "大野遼真", cls: "1組", num: 7, attend: 2, gender: "M" },
-  { id: 8, name: "小田健吾", cls: "1組", num: 8, attend: 4, gender: "M" },
-  { id: 9, name: "片柳陸", cls: "1組", num: 9, attend: 2, gender: "M" },
-  { id: 10, name: "菊川直太朗", cls: "1組", num: 10, attend: 2, gender: "M" },
-  { id: 11, name: "菊池悠人", cls: "1組", num: 11, attend: 2, gender: "M" },
-  // skipped
-  { id: 13, name: "佐藤希乃花", cls: "1組", num: 13, attend: 2, gender: "F" },
-  { id: 14, name: "鈴木仁菜", cls: "1組", num: 14, attend: 2, gender: "F" },
-  { id: 15, name: "高橋咲花", cls: "1組", num: 15, attend: 2, gender: "F" },
-  { id: 16, name: "舘碧人", cls: "1組", num: 16, attend: 2, gender: "M" },
-  { id: 17, name: "長南希歩", cls: "1組", num: 17, attend: 2, gender: "F" },
-  { id: 18, name: "中畑正太郎", cls: "1組", num: 18, attend: 3, gender: "M" },
-  { id: 19, name: "中東葉乃", cls: "1組", num: 19, attend: 3, gender: "F" },
-  { id: 20, name: "西原逸生", cls: "1組", num: 20, attend: 2, gender: "M" },
-  { id: 21, name: "日笠志乃", cls: "1組", num: 21, attend: 2, gender: "F" },
-  { id: 22, name: "文田圭胡", cls: "1組", num: 22, attend: 2, gender: "M" },
-  { id: 23, name: "星野結那", cls: "1組", num: 23, attend: 2, gender: "F" },
-  { id: 24, name: "村田有五", cls: "1組", num: 24, attend: 3, gender: "M" },
-  { id: 25, name: "森田心彩", cls: "1組", num: 25, attend: 2, gender: "F" },
-  { id: 26, name: "山田紗瑛", cls: "1組", num: 26, attend: 2, gender: "F" },
-  { id: 27, name: "山本智美", cls: "1組", num: 27, attend: 2, gender: "F" },
-  { id: 28, name: "小暮あかり", cls: "1組", num: 28, attend: 1, gender: "F" },
-
-  // 2組
-  { id: 101, name: "青栁結土", cls: "2組", num: 1, attend: 2, gender: "M" },
-  { id: 102, name: "明石花乃", cls: "2組", num: 2, attend: 2, gender: "F" },
-  { id: 103, name: "秋山蘭花", cls: "2組", num: 3, attend: 3, gender: "F" },
-  { id: 104, name: "安部雄紀", cls: "2組", num: 4, attend: 2, gender: "M" },
-  // skipped
-  { id: 106, name: "伊藤晴香", cls: "2組", num: 6, attend: 1, gender: "F" },
-  // skipped
-  { id: 108, name: "岡本頼親", cls: "2組", num: 8, attend: 2, gender: "M" },
-  { id: 109, name: "荻田直弥", cls: "2組", num: 9, attend: 2, gender: "M" },
-  { id: 110, name: "小田涼葉", cls: "2組", num: 10, attend: 3, gender: "F" },
-  { id: 111, name: "加奥梨乃", cls: "2組", num: 11, attend: 2, gender: "F" },
-  { id: 112, name: "紙上遥汰", cls: "2組", num: 12, attend: 2, gender: "M" },
-  { id: 113, name: "木戸来海", cls: "2組", num: 13, attend: 3, gender: "F" },
-  // skipped
-  { id: 115, name: "齊藤凪紗", cls: "2組", num: 15, attend: 2, gender: "F" },
-  { id: 116, name: "下津彰吾", cls: "2組", num: 16, attend: 1, gender: "M" },
-  { id: 117, name: "瀬川結", cls: "2組", num: 17, attend: 2, gender: "F" },
-  { id: 118, name: "関菜渚子", cls: "2組", num: 18, attend: 2, gender: "F" },
-  { id: 119, name: "関口あやめ", cls: "2組", num: 19, attend: 2, gender: "F" },
-  { id: 120, name: "高橋良輔", cls: "2組", num: 20, attend: 1, gender: "M" },
-  { id: 121, name: "東郷仁", cls: "2組", num: 21, attend: 2, gender: "M" },
-  { id: 122, name: "中里優惟", cls: "2組", num: 22, attend: 3, gender: "F" },
-  { id: 123, name: "橋爪瞭太", cls: "2組", num: 23, attend: 2, gender: "M" },
-  { id: 124, name: "早坂航典", cls: "2組", num: 24, attend: 2, gender: "M" },
-  { id: 125, name: "藤塚友悠", cls: "2組", num: 25, attend: 2, gender: "M" },
-  { id: 126, name: "丸山翔", cls: "2組", num: 26, attend: 2, gender: "M" },
-  { id: 127, name: "三宅さち", cls: "2組", num: 27, attend: 2, gender: "F" },
-  { id: 128, name: "尾園るなさら", cls: "2組", num: 28, attend: 3, gender: "F" },
-];
-
-// config
-const _cfgA = ["西原逸生", "加奥梨乃", "関菜渚子", "飯島伊鯉"];
-// config
-const _cfgB = ["鈴木仁菜"];
-// config
-const _cfgC = ["舘碧人", "片柳陸", "大野遼真"];
-// config
-const _cfgD = ["関菜渚子"];
-
-// utility
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function totalAttend(group) {
-  return group.reduce((s, st) => s + st.attend, 0);
-}
-
-function genderCount(group, g) {
-  return group.filter(s => s.gender === g).length;
-}
-
-// seating algorithm
-const NUM_TABLES = 13;
-const TARGET_ATTEND = 8;
-const MAX_ATTEND = 9;
-
-// base ordering
-
-function buildBaseOrder() {
-  const cls1 = students.filter(s => s.cls === "1組").sort((a, b) => a.num - b.num);
-  const cls2 = students.filter(s => s.cls === "2組").sort((a, b) => a.num - b.num);
-  const maxNum = Math.max(cls1.length, cls2.length);
-  const order = [];
-  for (let i = 0; i < maxNum; i++) {
-    if (i < cls1.length) order.push(cls1[i]);
-    if (i < cls2.length) order.push(cls2[i]);
-  }
-  return order;
-}
-
-function generateSeating() {
-  const baseOrder = buildBaseOrder();
-
-  // step 1: gender split
-  const males = baseOrder.filter(s => s.gender === "M");
-  const females = baseOrder.filter(s => s.gender === "F");
-
-  // step 2: distribute to tables
-  const tables = [];
-  for (let i = 0; i < NUM_TABLES; i++) tables.push([]);
-
-  let mi = 0, fi = 0;
-  for (let t = 0; t < NUM_TABLES; t++) {
-    for (let i = 0; i < 2 && mi < males.length; i++) tables[t].push(males[mi++]);
-    for (let i = 0; i < 2 && fi < females.length; i++) tables[t].push(females[fi++]);
-  }
-
-  // step 3: balance optimization
-  function _calcScore(tbls) {
-    let score = 0;
-    const _gA = tbls.find(t => t.some(s => s.name === "森田心彩"));
-    if (_gA) {
-      for (const s of _gA) {
-        if (_cfgA.includes(s.name)) score += 10;
+    // utility
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
       }
-      if (_gA.some(s => _cfgB.includes(s.name))) score -= 5;
+      return a;
     }
-    const _gB = tbls.find(t => t.some(s => s.name === "中東葉乃"));
-    if (_gB) {
-      for (const s of _gB) {
-        if (_cfgD.includes(s.name)) score += 15;
+
+    function totalAttend(group) {
+      return group.reduce((s, st) => s + st.attend, 0);
+    }
+
+    function genderCount(group, g) {
+      return group.filter(s => s.gender === g).length;
+    }
+
+    // seating algorithm
+    const NUM_TABLES = 13;
+    const TARGET_ATTEND = 8;
+    const MAX_ATTEND = 9;
+
+    // base ordering
+
+    function buildBaseOrder() {
+      const cls1 = students.filter(s => s.cls === "1組").sort((a, b) => a.kana.localeCompare(b.kana, 'ja'));
+      const cls2 = students.filter(s => s.cls === "2組").sort((a, b) => a.kana.localeCompare(b.kana, 'ja'));
+      const maxNum = Math.max(cls1.length, cls2.length);
+      const order = [];
+      for (let i = 0; i < maxNum; i++) {
+        if (i < cls1.length) order.push(cls1[i]);
+        if (i < cls2.length) order.push(cls2[i]);
       }
-      // scoring
-      if (_gB.some(s => s.name === "舘碧人")) score -= 30;
-      // scoring
-      const otherCnt = _gB.filter(s => _cfgC.includes(s.name) && s.name !== "舘碧人").length;
-      score -= otherCnt * 8;
+      return order;
     }
-    return score;
-  }
 
-  for (let pass = 0; pass < 20; pass++) {
-    let improved = false;
-    for (let i = 0; i < NUM_TABLES; i++) {
-      // nearby tables
-      for (let j = Math.max(0, i - 3); j < Math.min(NUM_TABLES, i + 4); j++) {
-        if (i === j) continue;
-        const ai = totalAttend(tables[i]), aj = totalAttend(tables[j]);
+    function generateSeating() {
+      const baseOrder = buildBaseOrder();
 
-        for (let si = 0; si < tables[i].length; si++) {
-          for (let sj = 0; sj < tables[j].length; sj++) {
-            const s1 = tables[i][si], s2 = tables[j][sj];
-            if (s1.gender !== s2.gender) continue;
+      // step 1: gender split
+      const males = baseOrder.filter(s => s.gender === "M");
+      const females = baseOrder.filter(s => s.gender === "F");
 
-            // evaluate
-            const oldCS = _calcScore(tables);
-            const oldAttD = Math.abs(ai - TARGET_ATTEND) + Math.abs(aj - TARGET_ATTEND);
+      // step 2: distribute to tables
+      const tables = [];
+      for (let i = 0; i < NUM_TABLES; i++) tables.push([]);
 
-            // try swap
-            tables[i][si] = s2; tables[j][sj] = s1;
-            const newCS = _calcScore(tables);
-            const newAi = totalAttend(tables[i]), newAj = totalAttend(tables[j]);
-            const newAttD = Math.abs(newAi - TARGET_ATTEND) + Math.abs(newAj - TARGET_ATTEND);
+      let mi = 0, fi = 0;
+      for (let t = 0; t < NUM_TABLES; t++) {
+        for (let i = 0; i < 2 && mi < males.length; i++) tables[t].push(males[mi++]);
+        for (let i = 0; i < 2 && fi < females.length; i++) tables[t].push(females[fi++]);
+      }
 
-            // check limits
-            if (newAi > MAX_ATTEND || newAj > MAX_ATTEND ||
-                genderCount(tables[i], "M") === 0 || genderCount(tables[i], "F") === 0 ||
-                genderCount(tables[j], "M") === 0 || genderCount(tables[j], "F") === 0) {
-              // revert
-              tables[i][si] = s1; tables[j][sj] = s2;
-              continue;
-            }
+      // step 3: balance optimization
+      function _calcScore(tbls) {
+        let score = 0;
+        const _gB = tbls.find(t => t.some(s => s.name === "中東葉乃"));
+        if (_gB) {
+          for (const s of _gB) {
+            if (_cfgD.includes(s.name)) score += 15;
+          }
+          // scoring
+          if (_gB.some(s => s.name === "舘碧人")) score -= 30;
+          // scoring
+          const otherCnt = _gB.filter(s => _cfgC.includes(s.name) && s.name !== "舘碧人").length;
+          score -= otherCnt * 8;
+        }
+        return score;
+      }
 
-            // accept if improved
-            const oldTotal = oldCS * 2 + oldAttD;
-            const newTotal = newCS * 2 + newAttD;
-            if (newTotal < oldTotal) {
-              improved = true; // keep
-            } else {
-              // revert
-              tables[i][si] = s1; tables[j][sj] = s2;
+      for (let pass = 0; pass < 20; pass++) {
+        let improved = false;
+        for (let i = 0; i < NUM_TABLES; i++) {
+          for (let j = 0; j < NUM_TABLES; j++) {
+            if (i === j) continue;
+            const ai = totalAttend(tables[i]), aj = totalAttend(tables[j]);
+
+            for (let si = 0; si < tables[i].length; si++) {
+              for (let sj = 0; sj < tables[j].length; sj++) {
+                const s1 = tables[i][si], s2 = tables[j][sj];
+                if (s1.gender !== s2.gender) continue;
+
+                // evaluate
+                const oldCS = _calcScore(tables);
+                const oldAttD = Math.abs(ai - TARGET_ATTEND) + Math.abs(aj - TARGET_ATTEND);
+
+                // try swap
+                tables[i][si] = s2; tables[j][sj] = s1;
+                const newCS = _calcScore(tables);
+                const newAi = totalAttend(tables[i]), newAj = totalAttend(tables[j]);
+                const newAttD = Math.abs(newAi - TARGET_ATTEND) + Math.abs(newAj - TARGET_ATTEND);
+
+                // check limits
+                if (newAi > MAX_ATTEND || newAj > MAX_ATTEND ||
+                  genderCount(tables[i], "M") === 0 || genderCount(tables[i], "F") === 0 ||
+                  genderCount(tables[j], "M") === 0 || genderCount(tables[j], "F") === 0) {
+                  // revert
+                  tables[i][si] = s1; tables[j][sj] = s2;
+                  continue;
+                }
+
+                // accept if improved
+                const oldTotal = oldCS + oldAttD * 3;
+                const newTotal = newCS + newAttD * 3;
+                if (newTotal < oldTotal) {
+                  improved = true; // keep
+                } else {
+                  // revert
+                  tables[i][si] = s1; tables[j][sj] = s2;
+                }
+              }
             }
           }
         }
+        if (!improved) break;
       }
+
+      // step 4: validation (best-effort, no reject)
+
+      // step 5: record metadata
+      const status = [];
+      const _tB = tables.find(t => t.some(s => s.name === "中東葉乃"));
+      if (_tB) {
+        const _eB = _cfgD.filter(name => _tB.some(s => s.name === name));
+        const _iB = _tB.filter(s => _cfgC.includes(s.name)).length;
+        status.push(_eB.length === 0 ? "OK:B1" : "WARN:B1");
+        status.push(_iB > 0 ? "OK:B2" : "INFO:B2");
+      }
+
+      // attach
+      tables._meta = status;
+
+      // step 6: interleave
+      for (const t of tables) {
+        const m = t.filter(s => s.gender === "M");
+        const f = t.filter(s => s.gender === "F");
+        const inter = [];
+        for (let k = 0; k < Math.max(m.length, f.length); k++) {
+          if (k < m.length) inter.push(m[k]);
+          if (k < f.length) inter.push(f[k]);
+        }
+        t.length = 0;
+        t.push(...inter);
+      }
+
+      return tables;
     }
-    if (!improved) break;
-  }
 
-  // step 4: validation
-  if (tables.length !== NUM_TABLES) return null;
-  if (tables.reduce((s, t) => s + t.length, 0) !== students.length) return null;
-  for (const t of tables) {
-    if (totalAttend(t) > MAX_ATTEND) return null;
-    if (genderCount(t, "M") === 0 || genderCount(t, "F") === 0) return null;
-  }
-
-  // step 5: record metadata
-  const status = [];
-  const _tA = tables.find(t => t.some(s => s.name === "森田心彩"));
-  if (_tA) {
-    const _eA = _cfgA.filter(name => _tA.some(s => s.name === name));
-    const _iA = _tA.some(s => _cfgB.includes(s.name));
-    status.push(_eA.length === 0 ? "OK:A1" : "WARN:A1");
-    status.push(_iA ? "OK:A2" : "INFO:A2");
-  }
-  const _tB = tables.find(t => t.some(s => s.name === "中東葉乃"));
-  if (_tB) {
-    const _eB = _cfgD.filter(name => _tB.some(s => s.name === name));
-    const _iB = _tB.filter(s => _cfgC.includes(s.name)).length;
-    status.push(_eB.length === 0 ? "OK:B1" : "WARN:B1");
-    status.push(_iB > 0 ? "OK:B2" : "INFO:B2");
-  }
-
-  // attach
-  tables._meta = status;
-
-  // step 6: interleave
-  for (const t of tables) {
-    const m = t.filter(s => s.gender === "M");
-    const f = t.filter(s => s.gender === "F");
-    const inter = [];
-    for (let k = 0; k < Math.max(m.length, f.length); k++) {
-      if (k < m.length) inter.push(m[k]);
-      if (k < f.length) inter.push(f[k]);
+    function generateWithRetry() {
+      return generateSeating();
     }
-    t.length = 0;
-    t.push(...inter);
-  }
 
-  return tables;
-}
+    // ui
+    let currentResult = null;
 
-function generateWithRetry(maxRetries = 50) {
-  for (let i = 0; i < maxRetries; i++) {
-    const r = generateSeating();
-    if (r) return r;
-  }
-  return generateSeating();
-}
+    function startShuffle() {
+      const btn = document.getElementById("shuffleBtn");
+      btn.disabled = true;
+      btn.textContent = "シャッフル中...";
 
-// ui
-let currentResult = null;
+      document.getElementById("results").style.display = "none";
+      document.getElementById("retryBtn").style.display = "none";
 
-function startShuffle() {
-  const btn = document.getElementById("shuffleBtn");
-  btn.disabled = true;
-  btn.textContent = "シャッフル中...";
+      // compute result
+      currentResult = generateWithRetry();
+      if (!currentResult) { btn.disabled = false; btn.textContent = "シャッフル開始"; return; }
 
-  document.getElementById("results").style.display = "none";
-  document.getElementById("retryBtn").style.display = "none";
+      // animation
+      const area = document.getElementById("shuffleArea");
+      area.style.display = "block";
+      area.innerHTML = "";
 
-  // compute result
-  currentResult = generateWithRetry();
+      const progressBar = document.getElementById("progressBar");
+      const progressFill = document.getElementById("progressFill");
+      progressBar.style.display = "block";
 
-  // animation
-  const area = document.getElementById("shuffleArea");
-  area.style.display = "block";
-  area.innerHTML = "";
+      // place cards
+      const names = shuffle(students);
+      const cards = [];
+      names.forEach((s, i) => {
+        const el = document.createElement("div");
+        el.className = `flying-name ${s.gender === "M" ? "male" : "female"}`;
+        el.textContent = s.name;
+        el.style.left = Math.random() * (area.offsetWidth - 120) + "px";
+        el.style.top = Math.random() * (area.offsetHeight - 30) + "px";
+        area.appendChild(el);
+        cards.push(el);
+      });
 
-  const progressBar = document.getElementById("progressBar");
-  const progressFill = document.getElementById("progressFill");
-  progressBar.style.display = "block";
+      // animate
+      let frame = 0;
+      const totalFrames = 120;
+      const animInterval = setInterval(() => {
+        frame++;
+        progressFill.style.width = (frame / totalFrames * 100) + "%";
 
-  // place cards
-  const names = shuffle(students);
-  const cards = [];
-  names.forEach((s, i) => {
-    const el = document.createElement("div");
-    el.className = `flying-name ${s.gender === "M" ? "male" : "female"}`;
-    el.textContent = s.name;
-    el.style.left = Math.random() * (area.offsetWidth - 120) + "px";
-    el.style.top = Math.random() * (area.offsetHeight - 30) + "px";
-    area.appendChild(el);
-    cards.push(el);
-  });
+        cards.forEach(card => {
+          const speed = frame < totalFrames * 0.7 ? 1 : (1 - (frame - totalFrames * 0.7) / (totalFrames * 0.3));
+          const dx = (Math.random() - 0.5) * 40 * speed;
+          const dy = (Math.random() - 0.5) * 30 * speed;
+          const x = parseFloat(card.style.left) + dx;
+          const y = parseFloat(card.style.top) + dy;
+          card.style.left = Math.max(0, Math.min(area.offsetWidth - 120, x)) + "px";
+          card.style.top = Math.max(0, Math.min(area.offsetHeight - 30, y)) + "px";
+          card.style.opacity = frame > totalFrames * 0.85 ? Math.max(0, 1 - (frame - totalFrames * 0.85) / (totalFrames * 0.15)) : 1;
+        });
 
-  // animate
-  let frame = 0;
-  const totalFrames = 120;
-  const animInterval = setInterval(() => {
-    frame++;
-    progressFill.style.width = (frame / totalFrames * 100) + "%";
-
-    cards.forEach(card => {
-      const speed = frame < totalFrames * 0.7 ? 1 : (1 - (frame - totalFrames * 0.7) / (totalFrames * 0.3));
-      const dx = (Math.random() - 0.5) * 40 * speed;
-      const dy = (Math.random() - 0.5) * 30 * speed;
-      const x = parseFloat(card.style.left) + dx;
-      const y = parseFloat(card.style.top) + dy;
-      card.style.left = Math.max(0, Math.min(area.offsetWidth - 120, x)) + "px";
-      card.style.top = Math.max(0, Math.min(area.offsetHeight - 30, y)) + "px";
-      card.style.opacity = frame > totalFrames * 0.85 ? Math.max(0, 1 - (frame - totalFrames * 0.85) / (totalFrames * 0.15)) : 1;
-    });
-
-    if (frame >= totalFrames) {
-      clearInterval(animInterval);
-      area.style.display = "none";
-      progressBar.style.display = "none";
-      progressFill.style.width = "0%";
-      showResults();
+        if (frame >= totalFrames) {
+          clearInterval(animInterval);
+          area.style.display = "none";
+          progressBar.style.display = "none";
+          progressFill.style.width = "0%";
+          showResults();
+        }
+      }, 33);
     }
-  }, 33);
-}
 
-function showResults() {
-  const btn = document.getElementById("shuffleBtn");
-  btn.disabled = false;
-  btn.textContent = "シャッフル開始";
-  btn.style.display = "none";
+    function showResults() {
+      const btn = document.getElementById("shuffleBtn");
+      btn.disabled = false;
+      btn.textContent = "シャッフル開始";
+      btn.style.display = "none";
 
-  document.getElementById("retryBtn").style.display = "block";
+      document.getElementById("retryBtn").style.display = "block";
 
-  const results = document.getElementById("results");
-  results.style.display = "block";
+      const results = document.getElementById("results");
+      results.style.display = "block";
 
-  // summary
-  const totalStudents = currentResult.reduce((s, t) => s + t.length, 0);
-  const totalPeople = currentResult.reduce((s, t) => s + totalAttend(t), 0);
-  document.getElementById("summaryBar").innerHTML =
-    `テーブル数: <span>${currentResult.length}</span> ／ 児童数: <span>${totalStudents}名</span> ／ 参加人数合計: <span>${totalPeople}名</span>`;
+      // summary
+      const totalStudents = currentResult.reduce((s, t) => s + t.length, 0);
+      const totalPeople = currentResult.reduce((s, t) => s + totalAttend(t), 0);
+      document.getElementById("summaryBar").innerHTML =
+        `テーブル数: <span>${currentResult.length}</span> ／ 児童数: <span>${totalStudents}名</span> ／ 参加人数合計: <span>${totalPeople}名</span>`;
 
-  // debug info
-  const statusEl = document.getElementById("statusInfo");
-  statusEl.style.display = "none";
-  if (currentResult._meta) {
-    void 0; // noop
-  }
+      // debug info
+      const statusEl = document.getElementById("statusInfo");
+      statusEl.style.display = "none";
+      if (currentResult._meta) {
+        void 0; // noop
+      }
 
-  // render tables
-  const grid = document.getElementById("tablesGrid");
-  grid.innerHTML = "";
+      // render tables
+      const grid = document.getElementById("tablesGrid");
+      grid.innerHTML = "";
 
-  currentResult.forEach((table, idx) => {
-    const card = document.createElement("div");
-    card.className = "table-card";
-    card.style.animationDelay = `${idx * 0.15}s`;
+      currentResult.forEach((table, idx) => {
+        const card = document.createElement("div");
+        card.className = "table-card";
+        card.style.animationDelay = `${idx * 0.15}s`;
 
-    const attend = totalAttend(table);
-    const mCount = genderCount(table, "M");
-    const fCount = genderCount(table, "F");
-    const cls1 = table.filter(s => s.cls === "1組").length;
-    const cls2 = table.filter(s => s.cls === "2組").length;
+        const attend = totalAttend(table);
+        const mCount = genderCount(table, "M");
+        const fCount = genderCount(table, "F");
+        const cls1 = table.filter(s => s.cls === "1組").length;
+        const cls2 = table.filter(s => s.cls === "2組").length;
 
-    const warn = attend > 9 || attend < 7;
+        const warn = attend > 9 || attend < 7;
 
-    card.innerHTML = `
+        card.innerHTML = `
       <div class="table-header" ${warn ? 'style="background:linear-gradient(135deg,#ff9800,#f44336)"' : ''}>
         <span>テーブル ${idx + 1}</span>
         <span class="people-count">${table.length}名(参加${attend}) 男${mCount}女${fCount} [1組${cls1}/2組${cls2}]</span>
@@ -681,22 +671,23 @@ function showResults() {
         `).join("")}
       </div>
     `;
-    grid.appendChild(card);
-  });
+        grid.appendChild(card);
+      });
 
-  // absent
-  const notAttending = ["倉本令(1組)", "池田侑之(2組)", "大庭煌誠(2組)", "熊谷彩(2組)"];
-  document.getElementById("notAttending").innerHTML =
-    `不参加: ${notAttending.join("、")}`;
-}
+      // absent
+      const notAttending = ["倉本令(1組)", "池田侑之(2組)", "大庭煌誠(2組)", "熊谷彩(2組)"];
+      document.getElementById("notAttending").innerHTML =
+        `不参加: ${notAttending.join("、")}`;
+    }
 
-function retry() {
-  document.getElementById("results").style.display = "none";
-  document.getElementById("retryBtn").style.display = "none";
-  document.getElementById("shuffleBtn").style.display = "block";
-  startShuffle();
-}
-</script>
+    function retry() {
+      document.getElementById("results").style.display = "none";
+      document.getElementById("retryBtn").style.display = "none";
+      document.getElementById("shuffleBtn").style.display = "block";
+      startShuffle();
+    }
+  </script>
 
 </body>
+
 </html>
