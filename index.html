@@ -641,18 +641,100 @@ function generateSeating() {
 }
 
 // リトライ付きで生成
-function generateWithRetry(maxRetries = 100) {
+// 制約なし版（4回に1回用）
+function generateSeatingNoConstraints() {
+  const usedIds = new Set();
+  const allStudents = shuffle([...students]);
+
+  const rem1M = shuffle(allStudents.filter(s => s.cls === "1組" && s.gender === "M"));
+  const rem1F = shuffle(allStudents.filter(s => s.cls === "1組" && s.gender === "F"));
+  const rem2M = shuffle(allStudents.filter(s => s.cls === "2組" && s.gender === "M"));
+  const rem2F = shuffle(allStudents.filter(s => s.cls === "2組" && s.gender === "F"));
+
+  const tables = [];
+  for (let i = 0; i < NUM_TABLES; i++) tables.push([]);
+
+  // 1組2組交互・男女バランスで配分
+  for (let t = 0; t < NUM_TABLES; t++) {
+    const pools = [rem1M, rem2F, rem2M, rem1F];
+    for (const pool of pools) {
+      if (pool.length > 0) {
+        const pick = pool.shift();
+        tables[t].push(pick);
+        usedIds.add(pick.id);
+      }
+    }
+  }
+
+  // 残りを参加人数少ないテーブルへ
+  const allRem = [...rem1M, ...rem1F, ...rem2M, ...rem2F];
+  for (const s of allRem) {
+    let bestIdx = -1, bestAtt = Infinity;
+    for (let i = 0; i < NUM_TABLES; i++) {
+      const att = totalAttend(tables[i]);
+      if (att < bestAtt) { bestAtt = att; bestIdx = i; }
+    }
+    if (bestIdx >= 0) tables[bestIdx].push(s);
+  }
+
+  // 参加人数スワップ最適化
+  for (let pass = 0; pass < 20; pass++) {
+    let improved = false;
+    for (let i = 0; i < NUM_TABLES; i++) {
+      for (let j = i + 1; j < NUM_TABLES; j++) {
+        const ai = totalAttend(tables[i]), aj = totalAttend(tables[j]);
+        for (let si = 0; si < tables[i].length; si++) {
+          for (let sj = 0; sj < tables[j].length; sj++) {
+            const s1 = tables[i][si], s2 = tables[j][sj];
+            const newAi = ai - s1.attend + s2.attend;
+            const newAj = aj - s2.attend + s1.attend;
+            if (newAi > MAX_ATTEND || newAj > MAX_ATTEND) continue;
+            const oldD = Math.abs(ai - TARGET_ATTEND) + Math.abs(aj - TARGET_ATTEND);
+            const newD = Math.abs(newAi - TARGET_ATTEND) + Math.abs(newAj - TARGET_ATTEND);
+            if (newD < oldD) {
+              tables[i][si] = s2; tables[j][sj] = s1;
+              improved = true;
+            }
+          }
+        }
+      }
+    }
+    if (!improved) break;
+  }
+
+  // 男女交互並べ
+  for (const t of tables) {
+    const m = shuffle(t.filter(s => s.gender === "M"));
+    const f = shuffle(t.filter(s => s.gender === "F"));
+    const interleaved = [];
+    const maxLen = Math.max(m.length, f.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < m.length) interleaved.push(m[i]);
+      if (i < f.length) interleaved.push(f[i]);
+    }
+    t.length = 0;
+    t.push(...interleaved);
+  }
+
+  return tables;
+}
+
+function generateWithRetry(useConstraints, maxRetries = 100) {
+  if (!useConstraints) {
+    // 制約なし: 1回で成功するはず
+    return generateSeatingNoConstraints();
+  }
   for (let i = 0; i < maxRetries; i++) {
     const result = generateSeating();
     if (result) return result;
   }
-  // フォールバック: 制約なしで生成
   console.warn("制約を満たす配置が見つかりませんでした。再試行してください。");
-  return generateSeating() || [students];
+  return generateSeatingNoConstraints();
 }
 
 // ===== UI =====
 let currentResult = null;
+let shuffleCount = 0; // シャッフル回数カウンター
 
 function startShuffle() {
   const btn = document.getElementById("shuffleBtn");
@@ -662,8 +744,11 @@ function startShuffle() {
   document.getElementById("results").style.display = "none";
   document.getElementById("retryBtn").style.display = "none";
 
-  // 結果を先に計算
-  currentResult = generateWithRetry();
+  // 結果を先に計算（4回に1回は制約なしで「本当のランダム」を見せる）
+  shuffleCount++;
+  const useConstraints = (shuffleCount % 4 !== 0);
+  currentResult = generateWithRetry(useConstraints);
+  console.log(`シャッフル #${shuffleCount} - 制約${useConstraints ? 'あり' : 'なし'}`);
 
   // シャッフルアニメーション
   const area = document.getElementById("shuffleArea");
