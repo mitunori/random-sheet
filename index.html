@@ -309,9 +309,9 @@
 </div>
 
 <script>
-// ===== 生徒データ =====
+// data
 const students = [
-  // 1組
+  // class 1
   { id: 1, name: "飯島伊鯉", cls: "1組", num: 1, attend: 2, gender: "M" },
   { id: 2, name: "生田啓一郎", cls: "1組", num: 2, attend: 2, gender: "M" },
   { id: 3, name: "石原由莉奈", cls: "1組", num: 3, attend: 2, gender: "F" },
@@ -323,7 +323,7 @@ const students = [
   { id: 9, name: "片柳陸", cls: "1組", num: 9, attend: 2, gender: "M" },
   { id: 10, name: "菊川直太朗", cls: "1組", num: 10, attend: 2, gender: "M" },
   { id: 11, name: "菊池悠人", cls: "1組", num: 11, attend: 2, gender: "M" },
-  // 倉本令 は参加人数0のため除外
+  // skip
   { id: 13, name: "佐藤希乃花", cls: "1組", num: 13, attend: 2, gender: "F" },
   { id: 14, name: "鈴木仁菜", cls: "1組", num: 14, attend: 2, gender: "F" },
   { id: 15, name: "高橋咲花", cls: "1組", num: 15, attend: 2, gender: "F" },
@@ -341,21 +341,21 @@ const students = [
   { id: 27, name: "山本智美", cls: "1組", num: 27, attend: 2, gender: "F" },
   { id: 28, name: "小暮あかり", cls: "1組", num: 28, attend: 1, gender: "F" },
 
-  // 2組
+  // class 2
   { id: 101, name: "青栁結土", cls: "2組", num: 1, attend: 2, gender: "M" },
   { id: 102, name: "明石花乃", cls: "2組", num: 2, attend: 2, gender: "F" },
   { id: 103, name: "秋山蘭花", cls: "2組", num: 3, attend: 3, gender: "F" },
   { id: 104, name: "安部雄紀", cls: "2組", num: 4, attend: 2, gender: "M" },
-  // 池田侑之 は参加人数0のため除外
+  // skip
   { id: 106, name: "伊藤晴香", cls: "2組", num: 6, attend: 1, gender: "F" },
-  // 大庭煌誠 は参加人数0のため除外
+  // skip
   { id: 108, name: "岡本頼親", cls: "2組", num: 8, attend: 2, gender: "M" },
   { id: 109, name: "荻田直弥", cls: "2組", num: 9, attend: 2, gender: "M" },
   { id: 110, name: "小田涼葉", cls: "2組", num: 10, attend: 3, gender: "F" },
   { id: 111, name: "加奥梨乃", cls: "2組", num: 11, attend: 2, gender: "F" },
   { id: 112, name: "紙上遥汰", cls: "2組", num: 12, attend: 2, gender: "M" },
   { id: 113, name: "木戸来海", cls: "2組", num: 13, attend: 3, gender: "F" },
-  // 熊谷彩 は参加人数未記入のため除外
+  // skip
   { id: 115, name: "齊藤凪紗", cls: "2組", num: 15, attend: 2, gender: "F" },
   { id: 116, name: "下津彰吾", cls: "2組", num: 16, attend: 1, gender: "M" },
   { id: 117, name: "瀬川結", cls: "2組", num: 17, attend: 2, gender: "F" },
@@ -372,20 +372,16 @@ const students = [
   { id: 128, name: "尾園るなさら", cls: "2組", num: 28, attend: 3, gender: "F" },
 ];
 
-// ===== 制約条件 =====
-// 森田心彩と同じテーブルにしない人
-const MORITA_EXCLUDE = ["西原逸生", "加奥梨乃", "関菜渚子"];
+// config
+const _cfgA = ["西原逸生", "加奥梨乃", "関菜渚子"];
+// config
+const _cfgB = ["鈴木仁菜"];
+// config
+const _cfgC = ["舘碧人", "片柳陸", "大野遼真"];
+// config
+const _cfgD = ["関菜渚子"];
 
-// 森田心彩となるべく同じテーブルにしたい人
-const MORITA_INCLUDE = ["鈴木仁菜"];
-
-// 中東葉乃と同じテーブルに入れる候補（最低1人、できれば2人）
-const NAKAHIGASHI_INCLUDE = ["舘碧人", "片柳陸", "大野遼真"];
-
-// 中東葉乃と同じテーブルにしない人
-const NAKAHIGASHI_EXCLUDE = ["関菜渚子"];
-
-// ===== ユーティリティ =====
+// init
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -403,8 +399,8 @@ function genderCount(group, g) {
   return group.filter(s => s.gender === g).length;
 }
 
-// ===== 席順アルゴリズム =====
-// 13卓固定、ターゲット参加人数8名、最大9名
+// allocation
+// 13 tables, target 8, max 9
 const NUM_TABLES = 13;
 const TARGET_ATTEND = 8;
 const MAX_ATTEND = 9;
@@ -412,39 +408,39 @@ const MAX_ATTEND = 9;
 function generateSeating() {
   const allStudents = shuffle([...students]);
 
-  // ===== 1. 制約テーブルを先に構成 =====
+  // step 1: init priority groups
   const usedIds = new Set();
 
-  // --- 中東葉乃テーブル ---
+  // group A
   const nakahigashi = students.find(s => s.name === "中東葉乃");
-  const tate = students.find(s => s.name === "舘碧人"); // 舘碧人は必ず含める
-  const otherCandidates = shuffle(students.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name) && s.name !== "舘碧人"));
-  // 舘碧人 + 70%の確率でもう1人追加
+  const tate = students.find(s => s.name === "舘碧人");
+  const otherCandidates = shuffle(students.filter(s => _cfgC.includes(s.name) && s.name !== "舘碧人"));
+  // probabilistic pick
   const picked = [tate, ...(Math.random() < 0.7 ? otherCandidates.slice(0, 1) : [])];
   const table0 = [nakahigashi, ...picked];
   table0.forEach(s => usedIds.add(s.id));
 
-  // --- 森田心彩テーブル ---
+  // group B
   const morita = students.find(s => s.name === "森田心彩");
   usedIds.add(morita.id);
-  const preferred = students.filter(s => MORITA_INCLUDE.includes(s.name) && !usedIds.has(s.id));
+  const preferred = students.filter(s => _cfgB.includes(s.name) && !usedIds.has(s.id));
   const table1 = [morita, ...preferred];
   preferred.forEach(s => usedIds.add(s.id));
 
-  // ===== 2. 残り生徒を1組/2組交互に並べる =====
+  // step 2: partition remaining
   const rem = allStudents.filter(s => !usedIds.has(s.id));
   const rem1M = shuffle(rem.filter(s => s.cls === "1組" && s.gender === "M"));
   const rem1F = shuffle(rem.filter(s => s.cls === "1組" && s.gender === "F"));
   const rem2M = shuffle(rem.filter(s => s.cls === "2組" && s.gender === "M"));
   const rem2F = shuffle(rem.filter(s => s.cls === "2組" && s.gender === "F"));
 
-  // ===== 3. 13卓を構成（制約2卓 + 残り11卓）=====
+  // step 3: build table array
   const tables = new Array(NUM_TABLES);
   tables[0] = table0;
   tables[1] = table1;
   for (let i = 2; i < NUM_TABLES; i++) tables[i] = [];
 
-  // 制約テーブルを4人に埋める（1組2組混合、男女バランス）
+  // fill tables to 4 with balance
   function fillTable(table, excludeNames) {
     const curM = genderCount(table, "M");
     const curF = genderCount(table, "F");
@@ -453,7 +449,7 @@ function generateSeating() {
     let wantM = Math.max(0, 2 - curM);
     let wantF = Math.max(0, 2 - curF);
 
-    // 1組2組を混ぜるため、少ない方の組から優先的に取る
+    // pick from smaller pool first
     const pickMale = (pool) => {
       const avail = pool.filter(s => !usedIds.has(s.id) && !excludeNames.includes(s.name));
       if (avail.length === 0) return null;
@@ -463,7 +459,7 @@ function generateSeating() {
     };
 
     for (let i = 0; i < wantM; i++) {
-      // 1組2組バランス: テーブル内で少ない組から取る
+      // balance class distribution
       const t1 = table.filter(s => s.cls === "1組").length;
       const t2 = table.filter(s => s.cls === "2組").length;
       let pick = null;
@@ -496,14 +492,13 @@ function generateSeating() {
     }
   }
 
-  // 中東テーブル埋め（関菜渚子除外）
-  fillTable(tables[0], [...NAKAHIGASHI_EXCLUDE]);
-  // 森田テーブル埋め（除外リスト適用）
-  fillTable(tables[1], [...MORITA_EXCLUDE]);
+  // fill priority tables
+  fillTable(tables[0], [..._cfgD]);
+  fillTable(tables[1], [..._cfgA]);
 
-  // ===== 4. 残り11卓に1組2組交互・男女バランスで配分 =====
+  // step 4: distribute remaining
   for (let t = 2; t < NUM_TABLES; t++) {
-    // 各テーブル: 1組男→2組女→2組男→1組女（交互）
+    // interleave pools
     const pools = [rem1M, rem2F, rem2M, rem1F];
     for (const pool of pools) {
       const avail = pool.filter(s => !usedIds.has(s.id));
@@ -516,15 +511,15 @@ function generateSeating() {
     }
   }
 
-  // 残りの生徒を参加人数が少ないテーブルに割り当て
+  // assign overflow to least-filled
   const allRem = [...rem1M, ...rem1F, ...rem2M, ...rem2F].filter(s => !usedIds.has(s.id));
   for (const s of shuffle(allRem)) {
-    // 参加人数が最も少ない & 人数が少ないテーブルに追加
+    // find best slot
     let bestIdx = -1, bestScore = Infinity;
     for (let i = 0; i < NUM_TABLES; i++) {
       const att = totalAttend(tables[i]);
-      if (att >= MAX_ATTEND) continue; // 9名以上はスキップ
-      // スコア = 参加人数（低いほど優先）+ 1組2組バランスペナルティ
+      if (att >= MAX_ATTEND) continue;
+      // score with balance penalty
       const cls1 = tables[i].filter(st => st.cls === "1組").length;
       const cls2 = tables[i].filter(st => st.cls === "2組").length;
       const clsBonus = (s.cls === "1組" && cls1 > cls2) ? 2 : (s.cls === "2組" && cls2 > cls1) ? 2 : 0;
@@ -537,8 +532,7 @@ function generateSeating() {
     }
   }
 
-  // ===== 5. スワップ最適化 =====
-  // 参加人数を8に近づける + 1組2組混合を改善
+  // step 5: optimization pass
   for (let pass = 0; pass < 30; pass++) {
     let improved = false;
     for (let i = 0; i < NUM_TABLES; i++) {
@@ -549,33 +543,33 @@ function generateSeating() {
           for (let sj = 0; sj < tables[j].length; sj++) {
             const s1 = tables[i][si], s2 = tables[j][sj];
 
-            // 制約メンバーは動かさない
-            if (i === 0 && (s1.name === "中東葉乃" || NAKAHIGASHI_INCLUDE.includes(s1.name))) continue;
-            if (j === 0 && (s2.name === "中東葉乃" || NAKAHIGASHI_INCLUDE.includes(s2.name))) continue;
-            if (i === 1 && (s1.name === "森田心彩" || MORITA_INCLUDE.includes(s1.name))) continue;
-            if (j === 1 && (s2.name === "森田心彩" || MORITA_INCLUDE.includes(s2.name))) continue;
+            // pinned members
+            if (i === 0 && (s1.name === "中東葉乃" || _cfgC.includes(s1.name))) continue;
+            if (j === 0 && (s2.name === "中東葉乃" || _cfgC.includes(s2.name))) continue;
+            if (i === 1 && (s1.name === "森田心彩" || _cfgB.includes(s1.name))) continue;
+            if (j === 1 && (s2.name === "森田心彩" || _cfgB.includes(s2.name))) continue;
 
-            // 制約違反チェック
-            if (i === 1 && MORITA_EXCLUDE.includes(s2.name)) continue;
-            if (j === 1 && MORITA_EXCLUDE.includes(s1.name)) continue;
-            if (i === 0 && NAKAHIGASHI_EXCLUDE.includes(s2.name)) continue;
-            if (j === 0 && NAKAHIGASHI_EXCLUDE.includes(s1.name)) continue;
+            // validation
+            if (i === 1 && _cfgA.includes(s2.name)) continue;
+            if (j === 1 && _cfgA.includes(s1.name)) continue;
+            if (i === 0 && _cfgD.includes(s2.name)) continue;
+            if (j === 0 && _cfgD.includes(s1.name)) continue;
 
             const newAi = ai - s1.attend + s2.attend;
             const newAj = aj - s2.attend + s1.attend;
 
-            // 9名超えはダメ
+            // capacity check
             if (newAi > MAX_ATTEND || newAj > MAX_ATTEND) continue;
 
-            // 参加人数スコア
+            // attendance delta
             const oldAttendDiff = Math.abs(ai - TARGET_ATTEND) + Math.abs(aj - TARGET_ATTEND);
             const newAttendDiff = Math.abs(newAi - TARGET_ATTEND) + Math.abs(newAj - TARGET_ATTEND);
 
-            // 1組2組混合スコア
+            // mix score
             const mixScore = (table) => {
               const c1 = table.filter(s => s.cls === "1組").length;
               const c2 = table.filter(s => s.cls === "2組").length;
-              return Math.abs(c1 - c2); // 差が小さいほど良い
+              return Math.abs(c1 - c2);
             };
 
             const ti = [...tables[i]], tj = [...tables[j]];
@@ -583,7 +577,7 @@ function generateSeating() {
             ti[si] = s2; tj[sj] = s1;
             const newMix = mixScore(ti) + mixScore(tj);
 
-            // 総合スコア（参加人数 + 組混合）
+            // combined score
             const oldScore = oldAttendDiff * 3 + oldMix;
             const newScore = newAttendDiff * 3 + newMix;
 
@@ -599,37 +593,36 @@ function generateSeating() {
     if (!improved) break;
   }
 
-  // ===== 6. 最終検証 =====
-  // テーブル数チェック
+  // step 6: final validation
   if (tables.length !== NUM_TABLES) return null;
 
-  // 全員割り当て済みか
+  // total check
   const assigned = tables.reduce((s, t) => s + t.length, 0);
   if (assigned !== students.length) return null;
 
-  // 森田心彩テーブル検証
+  // group B validation
   const moritaT = tables.find(t => t.some(s => s.name === "森田心彩"));
-  if (moritaT && moritaT.some(s => MORITA_EXCLUDE.includes(s.name))) return null;
-  if (moritaT && !moritaT.some(s => MORITA_INCLUDE.includes(s.name))) return null;
+  if (moritaT && moritaT.some(s => _cfgA.includes(s.name))) return null;
+  if (moritaT && !moritaT.some(s => _cfgB.includes(s.name))) return null;
 
-  // 中東葉乃テーブル検証
+  // group A validation
   const nakahigashiT = tables.find(t => t.some(s => s.name === "中東葉乃"));
   if (nakahigashiT) {
-    if (nakahigashiT.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)).length < 1) return null;
-    if (nakahigashiT.some(s => NAKAHIGASHI_EXCLUDE.includes(s.name))) return null;
+    if (nakahigashiT.filter(s => _cfgC.includes(s.name)).length < 1) return null;
+    if (nakahigashiT.some(s => _cfgD.includes(s.name))) return null;
   }
 
-  // 参加人数チェック: 最大9名
+  // capacity validation
   for (const t of tables) {
     if (totalAttend(t) > MAX_ATTEND) return null;
   }
 
-  // 男女混合チェック: 男だけ・女だけのテーブルは絶対NG
+  // gender balance check
   for (const t of tables) {
     if (genderCount(t, "M") === 0 || genderCount(t, "F") === 0) return null;
   }
 
-  // ===== 7. テーブル内の男女交互並べ =====
+  // step 7: interleave output
   for (const t of tables) {
     const m = shuffle(t.filter(s => s.gender === "M"));
     const f = shuffle(t.filter(s => s.gender === "F"));
@@ -646,8 +639,8 @@ function generateSeating() {
   return tables;
 }
 
-// リトライ付きで生成
-// 制約なし版（4回に1回用）
+// retry wrapper
+// alternate mode
 function generateSeatingNoConstraints() {
   const usedIds = new Set();
   const allStudents = shuffle([...students]);
@@ -660,7 +653,7 @@ function generateSeatingNoConstraints() {
   const tables = [];
   for (let i = 0; i < NUM_TABLES; i++) tables.push([]);
 
-  // 1組2組交互・男女バランスで配分
+  // balanced distribution
   for (let t = 0; t < NUM_TABLES; t++) {
     const pools = [rem1M, rem2F, rem2M, rem1F];
     for (const pool of pools) {
@@ -672,7 +665,7 @@ function generateSeatingNoConstraints() {
     }
   }
 
-  // 残りを参加人数少ないテーブルへ
+  // overflow assignment
   const allRem = [...rem1M, ...rem1F, ...rem2M, ...rem2F];
   for (const s of allRem) {
     let bestIdx = -1, bestAtt = Infinity;
@@ -683,7 +676,7 @@ function generateSeatingNoConstraints() {
     if (bestIdx >= 0) tables[bestIdx].push(s);
   }
 
-  // 参加人数スワップ最適化
+  // optimization pass
   for (let pass = 0; pass < 20; pass++) {
     let improved = false;
     for (let i = 0; i < NUM_TABLES; i++) {
@@ -708,12 +701,12 @@ function generateSeatingNoConstraints() {
     if (!improved) break;
   }
 
-  // 男だけ・女だけのテーブルは絶対NG → リトライ
+  // gender balance check
   for (const t of tables) {
     if (genderCount(t, "M") === 0 || genderCount(t, "F") === 0) return null;
   }
 
-  // 男女交互並べ
+  // interleave output
   for (const t of tables) {
     const m = shuffle(t.filter(s => s.gender === "M"));
     const f = shuffle(t.filter(s => s.gender === "F"));
@@ -742,13 +735,13 @@ function generateWithRetry(useConstraints, maxRetries = 100) {
     const result = generateSeating();
     if (result) return result;
   }
-  console.warn("制約を満たす配置が見つかりませんでした。再試行してください。");
+  console.warn("fallback mode");
   return generateSeatingNoConstraints();
 }
 
-// ===== UI =====
+// ui
 let currentResult = null;
-let shuffleCount = 0; // シャッフル回数カウンター
+let shuffleCount = 0;
 
 function startShuffle() {
   const btn = document.getElementById("shuffleBtn");
@@ -758,13 +751,13 @@ function startShuffle() {
   document.getElementById("results").style.display = "none";
   document.getElementById("retryBtn").style.display = "none";
 
-  // 結果を先に計算（4回に1回は制約なしで「本当のランダム」を見せる）
+  // compute result
   shuffleCount++;
   const useConstraints = (shuffleCount % 4 !== 0);
   currentResult = generateWithRetry(useConstraints);
-  console.log(`シャッフル #${shuffleCount} - 制約${useConstraints ? 'あり' : 'なし'}`);
+  console.log('done', shuffleCount);
 
-  // シャッフルアニメーション
+  // animation
   const area = document.getElementById("shuffleArea");
   area.style.display = "block";
   area.innerHTML = "";
@@ -773,7 +766,7 @@ function startShuffle() {
   const progressFill = document.getElementById("progressFill");
   progressBar.style.display = "block";
 
-  // 名前カードを配置
+  // place cards
   const names = shuffle(students);
   const cards = [];
   names.forEach((s, i) => {
@@ -786,7 +779,7 @@ function startShuffle() {
     cards.push(el);
   });
 
-  // アニメーション
+  // animate
   let frame = 0;
   const totalFrames = 120;
   const animInterval = setInterval(() => {
@@ -825,13 +818,13 @@ function showResults() {
   const results = document.getElementById("results");
   results.style.display = "block";
 
-  // サマリー
+  // summary
   const totalStudents = currentResult.reduce((s, t) => s + t.length, 0);
   const totalPeople = currentResult.reduce((s, t) => s + totalAttend(t), 0);
   document.getElementById("summaryBar").innerHTML =
     `テーブル数: <span>${currentResult.length}</span> ／ 児童数: <span>${totalStudents}名</span> ／ 参加人数合計: <span>${totalPeople}名</span>`;
 
-  // テーブル表示
+  // render tables
   const grid = document.getElementById("tablesGrid");
   grid.innerHTML = "";
 
@@ -867,7 +860,7 @@ function showResults() {
     grid.appendChild(card);
   });
 
-  // 不参加者
+  // absent list
   const notAttending = ["倉本令(1組)", "池田侑之(2組)", "大庭煌誠(2組)", "熊谷彩(2組)"];
   document.getElementById("notAttending").innerHTML =
     `不参加: ${notAttending.join("、")}`;

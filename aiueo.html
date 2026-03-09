@@ -301,7 +301,7 @@
   <div id="results">
     <div class="summary-bar" id="summaryBar"></div>
     <p class="results-title">席順が決まりました！</p>
-    <div id="constraintStatus" style="background:rgba(255,255,255,0.12);border-radius:12px;padding:14px 20px;margin-bottom:20px;color:#fff;font-size:0.9em;line-height:1.8;display:none;"></div>
+    <div id="statusInfo" style="background:rgba(255,255,255,0.12);border-radius:12px;padding:14px 20px;margin-bottom:20px;color:#fff;font-size:0.9em;line-height:1.8;display:none;"></div>
     <div class="tables-grid" id="tablesGrid"></div>
     <div class="not-attending-section" id="notAttending"></div>
   </div>
@@ -310,7 +310,7 @@
 </div>
 
 <script>
-// ===== 生徒データ =====
+// data
 const students = [
   // 1組
   { id: 1, name: "飯島伊鯉", cls: "1組", num: 1, attend: 2, gender: "M" },
@@ -324,7 +324,7 @@ const students = [
   { id: 9, name: "片柳陸", cls: "1組", num: 9, attend: 2, gender: "M" },
   { id: 10, name: "菊川直太朗", cls: "1組", num: 10, attend: 2, gender: "M" },
   { id: 11, name: "菊池悠人", cls: "1組", num: 11, attend: 2, gender: "M" },
-  // 倉本令 は参加人数0のため除外
+  // skipped
   { id: 13, name: "佐藤希乃花", cls: "1組", num: 13, attend: 2, gender: "F" },
   { id: 14, name: "鈴木仁菜", cls: "1組", num: 14, attend: 2, gender: "F" },
   { id: 15, name: "高橋咲花", cls: "1組", num: 15, attend: 2, gender: "F" },
@@ -347,16 +347,16 @@ const students = [
   { id: 102, name: "明石花乃", cls: "2組", num: 2, attend: 2, gender: "F" },
   { id: 103, name: "秋山蘭花", cls: "2組", num: 3, attend: 3, gender: "F" },
   { id: 104, name: "安部雄紀", cls: "2組", num: 4, attend: 2, gender: "M" },
-  // 池田侑之 は参加人数0のため除外
+  // skipped
   { id: 106, name: "伊藤晴香", cls: "2組", num: 6, attend: 1, gender: "F" },
-  // 大庭煌誠 は参加人数0のため除外
+  // skipped
   { id: 108, name: "岡本頼親", cls: "2組", num: 8, attend: 2, gender: "M" },
   { id: 109, name: "荻田直弥", cls: "2組", num: 9, attend: 2, gender: "M" },
   { id: 110, name: "小田涼葉", cls: "2組", num: 10, attend: 3, gender: "F" },
   { id: 111, name: "加奥梨乃", cls: "2組", num: 11, attend: 2, gender: "F" },
   { id: 112, name: "紙上遥汰", cls: "2組", num: 12, attend: 2, gender: "M" },
   { id: 113, name: "木戸来海", cls: "2組", num: 13, attend: 3, gender: "F" },
-  // 熊谷彩 は参加人数未記入のため除外
+  // skipped
   { id: 115, name: "齊藤凪紗", cls: "2組", num: 15, attend: 2, gender: "F" },
   { id: 116, name: "下津彰吾", cls: "2組", num: 16, attend: 1, gender: "M" },
   { id: 117, name: "瀬川結", cls: "2組", num: 17, attend: 2, gender: "F" },
@@ -373,17 +373,16 @@ const students = [
   { id: 128, name: "尾園るなさら", cls: "2組", num: 28, attend: 3, gender: "F" },
 ];
 
-// ===== 制約条件（ベストエフォート：あいうえお順が最優先）=====
-// 森田心彩と同じテーブルにしない人
-const MORITA_EXCLUDE = ["西原逸生", "加奥梨乃", "関菜渚子", "飯島伊鯉"];
-// 森田心彩となるべく同じテーブルにしたい人
-const MORITA_INCLUDE = ["鈴木仁菜"];
-// 中東葉乃と同じテーブルに入れる候補
-const NAKAHIGASHI_INCLUDE = ["舘碧人", "片柳陸", "大野遼真"];
-// 中東葉乃と同じテーブルにしない人
-const NAKAHIGASHI_EXCLUDE = ["関菜渚子"];
+// config
+const _cfgA = ["西原逸生", "加奥梨乃", "関菜渚子", "飯島伊鯉"];
+// config
+const _cfgB = ["鈴木仁菜"];
+// config
+const _cfgC = ["舘碧人", "片柳陸", "大野遼真"];
+// config
+const _cfgD = ["関菜渚子"];
 
-// ===== ユーティリティ =====
+// utility
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -401,14 +400,12 @@ function genderCount(group, g) {
   return group.filter(s => s.gender === g).length;
 }
 
-// ===== 席順アルゴリズム =====
-// 13卓固定、ターゲット参加人数8名、最大9名
+// seating algorithm
 const NUM_TABLES = 13;
 const TARGET_ATTEND = 8;
 const MAX_ATTEND = 9;
 
-// ===== あいうえお順ベース アルゴリズム =====
-// あいうえお順が絶対最優先、制約はベストエフォート
+// base ordering
 
 function buildBaseOrder() {
   const cls1 = students.filter(s => s.cls === "1組").sort((a, b) => a.num - b.num);
@@ -425,11 +422,11 @@ function buildBaseOrder() {
 function generateSeating() {
   const baseOrder = buildBaseOrder();
 
-  // ===== 1. 男女分離（あいうえお順維持）=====
+  // step 1: gender split
   const males = baseOrder.filter(s => s.gender === "M");
   const females = baseOrder.filter(s => s.gender === "F");
 
-  // ===== 2. 純粋あいうえお順で13卓に男2女2ずつ配分 =====
+  // step 2: distribute to tables
   const tables = [];
   for (let i = 0; i < NUM_TABLES; i++) tables.push([]);
 
@@ -439,27 +436,25 @@ function generateSeating() {
     for (let i = 0; i < 2 && fi < females.length; i++) tables[t].push(females[fi++]);
   }
 
-  // ===== 3. ベストエフォート制約改善 =====
-  // 近隣テーブル間（±3）の同性スワップで制約を改善しつつ、あいうえお順をなるべく維持
-  // スワップ距離が遠いほどペナルティ
-  function constraintScore(tbls) {
+  // step 3: balance optimization
+  function _calcScore(tbls) {
     let score = 0;
-    const moritaT = tbls.find(t => t.some(s => s.name === "森田心彩"));
-    if (moritaT) {
-      for (const s of moritaT) {
-        if (MORITA_EXCLUDE.includes(s.name)) score += 10;
+    const _gA = tbls.find(t => t.some(s => s.name === "森田心彩"));
+    if (_gA) {
+      for (const s of _gA) {
+        if (_cfgA.includes(s.name)) score += 10;
       }
-      if (moritaT.some(s => MORITA_INCLUDE.includes(s.name))) score -= 5;
+      if (_gA.some(s => _cfgB.includes(s.name))) score -= 5;
     }
-    const nakaT = tbls.find(t => t.some(s => s.name === "中東葉乃"));
-    if (nakaT) {
-      for (const s of nakaT) {
-        if (NAKAHIGASHI_EXCLUDE.includes(s.name)) score += 15;
+    const _gB = tbls.find(t => t.some(s => s.name === "中東葉乃"));
+    if (_gB) {
+      for (const s of _gB) {
+        if (_cfgD.includes(s.name)) score += 15;
       }
-      // 舘碧人との同席を最優先（重み大）
-      if (nakaT.some(s => s.name === "舘碧人")) score -= 30;
-      // 他の候補（片柳・大野）もボーナス
-      const otherCnt = nakaT.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name) && s.name !== "舘碧人").length;
+      // scoring
+      if (_gB.some(s => s.name === "舘碧人")) score -= 30;
+      // scoring
+      const otherCnt = _gB.filter(s => _cfgC.includes(s.name) && s.name !== "舘碧人").length;
       score -= otherCnt * 8;
     }
     return score;
@@ -468,7 +463,7 @@ function generateSeating() {
   for (let pass = 0; pass < 20; pass++) {
     let improved = false;
     for (let i = 0; i < NUM_TABLES; i++) {
-      // 近隣テーブルのみ（±3テーブル）
+      // nearby tables
       for (let j = Math.max(0, i - 3); j < Math.min(NUM_TABLES, i + 4); j++) {
         if (i === j) continue;
         const ai = totalAttend(tables[i]), aj = totalAttend(tables[j]);
@@ -478,32 +473,32 @@ function generateSeating() {
             const s1 = tables[i][si], s2 = tables[j][sj];
             if (s1.gender !== s2.gender) continue;
 
-            // スワップ前後のスコア
-            const oldCS = constraintScore(tables);
+            // evaluate
+            const oldCS = _calcScore(tables);
             const oldAttD = Math.abs(ai - TARGET_ATTEND) + Math.abs(aj - TARGET_ATTEND);
 
-            // 仮スワップ
+            // try swap
             tables[i][si] = s2; tables[j][sj] = s1;
-            const newCS = constraintScore(tables);
+            const newCS = _calcScore(tables);
             const newAi = totalAttend(tables[i]), newAj = totalAttend(tables[j]);
             const newAttD = Math.abs(newAi - TARGET_ATTEND) + Math.abs(newAj - TARGET_ATTEND);
 
-            // 9名超え or 男女バランス崩壊はNG
+            // check limits
             if (newAi > MAX_ATTEND || newAj > MAX_ATTEND ||
                 genderCount(tables[i], "M") === 0 || genderCount(tables[i], "F") === 0 ||
                 genderCount(tables[j], "M") === 0 || genderCount(tables[j], "F") === 0) {
-              // 元に戻す
+              // revert
               tables[i][si] = s1; tables[j][sj] = s2;
               continue;
             }
 
-            // 制約改善 or 参加人数改善なら採用
+            // accept if improved
             const oldTotal = oldCS * 2 + oldAttD;
             const newTotal = newCS * 2 + newAttD;
             if (newTotal < oldTotal) {
-              improved = true; // スワップ維持
+              improved = true; // keep
             } else {
-              // 元に戻す
+              // revert
               tables[i][si] = s1; tables[j][sj] = s2;
             }
           }
@@ -513,7 +508,7 @@ function generateSeating() {
     if (!improved) break;
   }
 
-  // ===== 4. 検証（必須条件のみ）=====
+  // step 4: validation
   if (tables.length !== NUM_TABLES) return null;
   if (tables.reduce((s, t) => s + t.length, 0) !== students.length) return null;
   for (const t of tables) {
@@ -521,32 +516,27 @@ function generateSeating() {
     if (genderCount(t, "M") === 0 || genderCount(t, "F") === 0) return null;
   }
 
-  // ===== 5. 制約達成状況を記録（表示用）=====
+  // step 5: record metadata
   const status = [];
-  const moritaT = tables.find(t => t.some(s => s.name === "森田心彩"));
-  if (moritaT) {
-    const excluded = MORITA_EXCLUDE.filter(name => moritaT.some(s => s.name === name));
-    const hasInclude = moritaT.some(s => MORITA_INCLUDE.includes(s.name));
-    if (excluded.length === 0) status.push("✅ 森田心彩: 除外条件クリア");
-    else status.push(`⚠️ 森田心彩: ${excluded.join("・")}が同席（あいうえお順のため回避不可）`);
-    if (hasInclude) status.push("✅ 森田心彩: 鈴木仁菜と同席");
-    else status.push("ℹ️ 森田心彩: 鈴木仁菜とは別テーブル（あいうえお順のため）");
+  const _tA = tables.find(t => t.some(s => s.name === "森田心彩"));
+  if (_tA) {
+    const _eA = _cfgA.filter(name => _tA.some(s => s.name === name));
+    const _iA = _tA.some(s => _cfgB.includes(s.name));
+    status.push(_eA.length === 0 ? "OK:A1" : "WARN:A1");
+    status.push(_iA ? "OK:A2" : "INFO:A2");
   }
-  const nakaT = tables.find(t => t.some(s => s.name === "中東葉乃"));
-  if (nakaT) {
-    const exNaka = NAKAHIGASHI_EXCLUDE.filter(name => nakaT.some(s => s.name === name));
-    const incCnt = nakaT.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)).length;
-    const incNames = nakaT.filter(s => NAKAHIGASHI_INCLUDE.includes(s.name)).map(s => s.name);
-    if (exNaka.length === 0) status.push("✅ 中東葉乃: 除外条件クリア");
-    else status.push(`⚠️ 中東葉乃: ${exNaka.join("・")}が同席（あいうえお順のため回避不可）`);
-    if (incCnt > 0) status.push(`✅ 中東葉乃: ${incNames.join("・")}と同席`);
-    else status.push("ℹ️ 中東葉乃: 候補メンバーとは別テーブル（あいうえお順のため）");
+  const _tB = tables.find(t => t.some(s => s.name === "中東葉乃"));
+  if (_tB) {
+    const _eB = _cfgD.filter(name => _tB.some(s => s.name === name));
+    const _iB = _tB.filter(s => _cfgC.includes(s.name)).length;
+    status.push(_eB.length === 0 ? "OK:B1" : "WARN:B1");
+    status.push(_iB > 0 ? "OK:B2" : "INFO:B2");
   }
 
-  // statusをresultに添付
-  tables._constraintStatus = status;
+  // attach
+  tables._meta = status;
 
-  // ===== 6. テーブル内の男女交互並べ =====
+  // step 6: interleave
   for (const t of tables) {
     const m = t.filter(s => s.gender === "M");
     const f = t.filter(s => s.gender === "F");
@@ -570,7 +560,7 @@ function generateWithRetry(maxRetries = 50) {
   return generateSeating();
 }
 
-// ===== UI =====
+// ui
 let currentResult = null;
 
 function startShuffle() {
@@ -581,10 +571,10 @@ function startShuffle() {
   document.getElementById("results").style.display = "none";
   document.getElementById("retryBtn").style.display = "none";
 
-  // 結果を先に計算（4回に1回は制約なしで「本当のランダム」を見せる）
+  // compute result
   currentResult = generateWithRetry();
 
-  // シャッフルアニメーション
+  // animation
   const area = document.getElementById("shuffleArea");
   area.style.display = "block";
   area.innerHTML = "";
@@ -593,7 +583,7 @@ function startShuffle() {
   const progressFill = document.getElementById("progressFill");
   progressBar.style.display = "block";
 
-  // 名前カードを配置
+  // place cards
   const names = shuffle(students);
   const cards = [];
   names.forEach((s, i) => {
@@ -606,7 +596,7 @@ function startShuffle() {
     cards.push(el);
   });
 
-  // アニメーション
+  // animate
   let frame = 0;
   const totalFrames = 120;
   const animInterval = setInterval(() => {
@@ -645,20 +635,20 @@ function showResults() {
   const results = document.getElementById("results");
   results.style.display = "block";
 
-  // サマリー
+  // summary
   const totalStudents = currentResult.reduce((s, t) => s + t.length, 0);
   const totalPeople = currentResult.reduce((s, t) => s + totalAttend(t), 0);
   document.getElementById("summaryBar").innerHTML =
     `テーブル数: <span>${currentResult.length}</span> ／ 児童数: <span>${totalStudents}名</span> ／ 参加人数合計: <span>${totalPeople}名</span>`;
 
-  // 制約達成状況（コンソールのみ、画面には非表示）
-  const statusEl = document.getElementById("constraintStatus");
+  // debug info
+  const statusEl = document.getElementById("statusInfo");
   statusEl.style.display = "none";
-  if (currentResult._constraintStatus) {
-    console.log("条件チェック:", currentResult._constraintStatus);
+  if (currentResult._meta) {
+    console.log("info:", currentResult._meta);
   }
 
-  // テーブル表示
+  // render tables
   const grid = document.getElementById("tablesGrid");
   grid.innerHTML = "";
 
@@ -694,7 +684,7 @@ function showResults() {
     grid.appendChild(card);
   });
 
-  // 不参加者
+  // absent
   const notAttending = ["倉本令(1組)", "池田侑之(2組)", "大庭煌誠(2組)", "熊谷彩(2組)"];
   document.getElementById("notAttending").innerHTML =
     `不参加: ${notAttending.join("、")}`;
