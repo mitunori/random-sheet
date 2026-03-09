@@ -651,13 +651,11 @@ function showResults() {
   document.getElementById("summaryBar").innerHTML =
     `テーブル数: <span>${currentResult.length}</span> ／ 児童数: <span>${totalStudents}名</span> ／ 参加人数合計: <span>${totalPeople}名</span>`;
 
-  // 制約達成状況
+  // 制約達成状況（コンソールのみ、画面には非表示）
   const statusEl = document.getElementById("constraintStatus");
-  if (currentResult._constraintStatus && currentResult._constraintStatus.length > 0) {
-    statusEl.style.display = "block";
-    statusEl.innerHTML = "<strong>条件チェック:</strong><br>" + currentResult._constraintStatus.join("<br>");
-  } else {
-    statusEl.style.display = "none";
+  statusEl.style.display = "none";
+  if (currentResult._constraintStatus) {
+    console.log("条件チェック:", currentResult._constraintStatus);
   }
 
   // テーブル表示
