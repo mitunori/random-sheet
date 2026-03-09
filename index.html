@@ -623,6 +623,11 @@ function generateSeating() {
     if (totalAttend(t) > MAX_ATTEND) return null;
   }
 
+  // 男女混合チェック: 男だけ・女だけのテーブルは絶対NG
+  for (const t of tables) {
+    if (genderCount(t, "M") === 0 || genderCount(t, "F") === 0) return null;
+  }
+
   // ===== 7. テーブル内の男女交互並べ =====
   for (const t of tables) {
     const m = shuffle(t.filter(s => s.gender === "M"));
@@ -702,6 +707,11 @@ function generateSeatingNoConstraints() {
     if (!improved) break;
   }
 
+  // 男だけ・女だけのテーブルは絶対NG → リトライ
+  for (const t of tables) {
+    if (genderCount(t, "M") === 0 || genderCount(t, "F") === 0) return null;
+  }
+
   // 男女交互並べ
   for (const t of tables) {
     const m = shuffle(t.filter(s => s.gender === "M"));
@@ -721,7 +731,10 @@ function generateSeatingNoConstraints() {
 
 function generateWithRetry(useConstraints, maxRetries = 100) {
   if (!useConstraints) {
-    // 制約なし: 1回で成功するはず
+    for (let i = 0; i < maxRetries; i++) {
+      const result = generateSeatingNoConstraints();
+      if (result) return result;
+    }
     return generateSeatingNoConstraints();
   }
   for (let i = 0; i < maxRetries; i++) {
